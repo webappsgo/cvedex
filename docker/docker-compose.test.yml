@@ -1,0 +1,36 @@
+# cvedex - test compose (AI/AUTOMATED TESTING ONLY)
+# DEBUG=true enabled. Not for production use.
+
+name: cvedex-test
+
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  cvedex:
+    image: ghcr.io/casapps/cvedex:devel
+    container_name: cvedex-test
+    hostname: cvedex-test
+    restart: 'no'
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - MODE=development
+      - PORT=80
+      - DEBUG=true
+      - TZ=UTC
+    volumes:
+      - './volumes/config:/config:z'
+      - './volumes/data:/data:z'
+    ports:
+      - '127.0.0.1:64580:80'
+    networks:
+      - cvedex-test
+
+networks:
+  cvedex-test:
+    name: cvedex-test
+    external: false

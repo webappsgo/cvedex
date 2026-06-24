@@ -1,0 +1,36 @@
+# cvedex - development compose
+# Runs binary in debug mode with verbose logging and hot-reload-friendly settings.
+
+name: cvedex
+
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  cvedex:
+    image: ghcr.io/casapps/cvedex:devel
+    container_name: cvedex-dev
+    hostname: ${BASE_HOST_NAME:-cvedex-dev}
+    restart: unless-stopped
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      - MODE=development
+      - PORT=80
+      - DEBUG=true
+      - TZ=${TZ:-America/New_York}
+    volumes:
+      - './volumes/config:/config:z'
+      - './volumes/data:/data:z'
+    ports:
+      - '127.0.0.1:64580:80'
+    networks:
+      - cvedex
+
+networks:
+  cvedex:
+    name: cvedex-dev
+    external: false
