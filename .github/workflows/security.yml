@@ -1,0 +1,60 @@
+name: Security
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scan:
+    name: Secret Scan (truffleHog)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Run truffleHog
+        uses: trufflesecurity/trufflehog@e7c9e81b4c9e6b90f5c88e0a4d6e8e3b2b4a1c8d
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  workflow-sha-policy:
+    name: Workflow SHA Pin Policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Check all actions are pinned to SHA
+        run: |
+          set -e
+          violations=0
+          for f in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$f" ] || continue
+            while IFS= read -r line; do
+              if echo "$line" | grep -qE '^\s+uses:\s+[^@]+@[^@]+$'; then
+                ref=$(echo "$line" | sed -E 's/.*uses:\s+[^@]+@([^@\s]+).*/\1/')
+                if ! echo "$ref" | grep -qE '^[0-9a-f]{40}$'; then
+                  echo "VIOLATION in $f: $line"
+                  violations=$((violations + 1))
+                fi
+              fi
+            done < "$f"
+          done
+          if [ "$violations" -gt 0 ]; then
+            echo "ERROR: $violations action(s) not pinned to full commit SHA"
+            exit 1
+          fi
+          echo "All actions are pinned to full commit SHA"

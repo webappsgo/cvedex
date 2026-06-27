@@ -116,15 +116,22 @@ volumes/
 *.swp
 *.swo
 
-# AI config directories (regenerated from AI.md rules, not committed)
-.claude/
+# Other AI tool config dirs (not committed)
 .cursor/
 .aider/
 .ai/
 .windsurf/
 
+# Claude Code — commit: settings.json, rules/, agents/, hooks/, commands/, plans/
+# Only ignore personal and runtime files
+.claude/settings.local.json
+.claude/*.lock
+.claude/backups/
+.claude/cache/
+.claude/history.jsonl
+
 # Claude Code personal files (always gitignored)
 CLAUDE.local.md
 
-# Coverage reports
+# Coverage reports (always written to /tmp/casapps/, never project root)
 coverage.out

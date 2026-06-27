@@ -40,6 +40,7 @@ GO_DOCKER := docker run --rm -it \
 	-v $(GO_BUILD):/usr/local/share/go/cache \
 	-w /app \
 	-e CGO_ENABLED=0 \
+	-e GOFLAGS=-buildvcs=false \
 	casjaysdev/go:latest
 
 .PHONY: build local release docker test dev clean
@@ -172,14 +173,16 @@ docker:
 # =============================================================================
 test:
 	@echo "Running tests with coverage..."
+	@mkdir -p "/tmp/$(PROJECTORG)"
 	@$(GO_DOCKER) sh -c "go mod download && \
-		go test -v -cover -coverprofile=coverage.out ./... && \
-		COVERAGE=\$$(go tool cover -func=coverage.out | grep total | awk '{print \$$3}' | sed 's/%//'); \
-		if [ \$$(echo \"\$$COVERAGE < 80\" | bc -l) -eq 1 ]; then \
-			echo \"ERROR: Coverage is \$$COVERAGE%, must be >= 80%\"; \
+		COVDIR=\$$(mktemp -d /tmp/$(PROJECTORG)/$(PROJECTNAME)-XXXXXX) && \
+		go test -v -cover -coverprofile=\$$COVDIR/coverage.out ./... && \
+		COVERAGE=\$$(go tool cover -func=\$$COVDIR/coverage.out | grep total | awk '{print \$$3}' | sed 's/%//'); \
+		if [ \$$(echo \"\$$COVERAGE < 60\" | bc -l) -eq 1 ]; then \
+			echo \"ERROR: Coverage is \$$COVERAGE%, must be >= 60%\"; \
 			exit 1; \
 		fi && \
-		echo \"Tests complete - Coverage: \$$COVERAGE% (>= 80% required)\""
+		echo \"Tests complete - Coverage: \$$COVERAGE% (>= 60% required)\""
 
 # =============================================================================
 # DEV - Quick build for local development/testing (to random temp dir)

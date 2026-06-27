@@ -1,0 +1,48 @@
+site_name: cvedex
+site_description: Authoritative DNS server exposing the full CVE corpus as queryable DNS names
+site_url: https://cvedex.casapps.us
+repo_url: https://github.com/casapps/cvedex
+repo_name: casapps/cvedex
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - DNS Records: dns-records.md
+  - JSON API: api.md
+  - DNSSEC Setup: dnssec.md
+  - Admin Guide: admin.md
+  - Self-Hosting: self-hosting.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables

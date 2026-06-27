@@ -1,0 +1,32 @@
+image: casjaysdev/go:latest
+
+variables:
+  CGO_ENABLED: "0"
+  GOFLAGS: "-buildvcs=false"
+
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  script:
+    - mkdir -p /tmp/casapps
+    - COVDIR=$(mktemp -d /tmp/casapps/cvedex-XXXXXX)
+    - go test -cover -coverprofile="$COVDIR/coverage.out" ./...
+  only:
+    - branches
+    - merge_requests
+
+build:
+  stage: build
+  script:
+    - VERSION=$(cat release.txt 2>/dev/null || echo "devel")
+    - BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    - COMMIT_ID=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+    - LDFLAGS="-s -w -X main.Version=$VERSION -X main.CommitID=$COMMIT_ID -X main.BuildDate=$BUILD_DATE"
+    - mkdir -p binaries
+    - go build -ldflags "$LDFLAGS" -buildvcs=false -o binaries/cvedex ./src
+  only:
+    - branches
+    - merge_requests
