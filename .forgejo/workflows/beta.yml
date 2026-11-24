@@ -1,0 +1,64 @@
+name: Beta Release
+
+on:
+  push:
+    branches: [beta]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta-${{ forgejo.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    uses: ./.forgejo/workflows/ci.yml
+
+  beta:
+    needs: preflight
+    runs-on: docker
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build all supported platforms
+        run: |
+          set -eu
+          mkdir -p dist
+          VERSION="$(date -u +%Y%m%d%H%M%S)-beta"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          COMMIT_ID=$(git rev-parse --short=7 HEAD)
+          BUILD_EPOCH=$(date -u +%s)
+          OFFICIAL_SITE=$(cat site.txt 2>/dev/null || true)
+          LDFLAGS="-s -w -X main.Version=$VERSION -X main.CommitID=$COMMIT_ID -X main.BuildEpoch=$BUILD_EPOCH -X main.OfficialSite=$OFFICIAL_SITE"
+          for PLATFORM in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64 freebsd/arm64; do
+            OS=${PLATFORM%/*}; ARCH=${PLATFORM#*/}; OUT="dist/cvedex-$OS-$ARCH"
+            [ "$OS" != windows ] || OUT="$OUT.exe"
+            GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$OUT" ./src
+            sha256sum "$OUT" > "$OUT.sha256"
+            if [ -d src/client ]; then
+              CLI_OUT="dist/cvedex-$OS-$ARCH-cli"
+              [ "$OS" != windows ] || CLI_OUT="$CLI_OUT.exe"
+              GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$CLI_OUT" ./src/client
+              sha256sum "$CLI_OUT" > "$CLI_OUT.sha256"
+            fi
+          done
+          (cd dist && sha256sum cvedex-* > SHA256SUMS)
+          cyclonedx-gomod app -json -output dist/cvedex-sbom.cdx.json ./src
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        env:
+          GITHUB_SERVER_URL: ${{ forgejo.server_url }}
+          GITHUB_REPOSITORY: ${{ forgejo.repository }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        with:
+          repository: ${{ forgejo.repository }}
+          token: ${{ secrets.FORGEJO_TOKEN }}
+          tag_name: ${{ env.VERSION }}
+          target_commitish: ${{ forgejo.sha }}
+          prerelease: true
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true

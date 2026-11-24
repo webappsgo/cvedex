@@ -1,0 +1,131 @@
+name: Stable Release
+
+on:
+  push:
+    tags: ['v*', '*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || gitea.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    uses: ./.gitea/workflows/ci.yml
+
+  prepare-tag:
+    needs: preflight
+    runs-on: docker
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || gitea.ref }}
+          fetch-depth: 0
+      - name: Ensure release tag points to this commit
+        env:
+          RELEASE_TAG: ${{ inputs.tag || gitea.ref_name }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -eu
+          TAG="$RELEASE_TAG"
+          case "$TAG" in *[!A-Za-z0-9._-]*) echo "Invalid tag name"; exit 1 ;; esac
+          AUTH_HEADER="Authorization: token $GITEA_TOKEN"
+          REMOTE_TAG=$(git -c "http.extraheader=$AUTH_HEADER" ls-remote origin "refs/tags/$TAG" | awk 'NR == 1 {print $1}')
+          if [ -n "$REMOTE_TAG" ]; then git -c "http.extraheader=$AUTH_HEADER" push origin ":refs/tags/$TAG"; fi
+          git tag -f "$TAG" HEAD
+          git -c "http.extraheader=$AUTH_HEADER" push origin "refs/tags/$TAG"
+
+  build:
+    needs: [prepare-tag, preflight]
+    permissions:
+      contents: write
+    runs-on: docker
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64, ext: .exe }
+          - { goos: windows, goarch: arm64, ext: .exe }
+          - { goos: freebsd, goarch: amd64 }
+          - { goos: freebsd, goarch: arm64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || gitea.ref }}
+          fetch-depth: 0
+      - name: Set metadata and build binary
+        env:
+          RELEASE_TAG: ${{ inputs.tag || gitea.ref_name }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          COMMIT_ID=$(git rev-parse --short=7 HEAD)
+          BUILD_EPOCH=$(date -u +%s)
+          OFFICIAL_SITE=$(cat site.txt 2>/dev/null || true)
+          LDFLAGS="-s -w -X main.Version=$VERSION -X main.CommitID=$COMMIT_ID -X main.BuildEpoch=$BUILD_EPOCH -X main.OfficialSite=$OFFICIAL_SITE"
+          OUTPUT="cvedex-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
+          go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$OUTPUT" ./src
+          sha256sum "$OUTPUT" > "$OUTPUT.sha256"
+          if [ -d src/client ]; then
+            CLI_OUTPUT="cvedex-${{ matrix.goos }}-${{ matrix.goarch }}-cli${{ matrix.ext }}"
+            go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$CLI_OUTPUT" ./src/client
+            sha256sum "$CLI_OUTPUT" > "$CLI_OUTPUT.sha256"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: cvedex-*
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || gitea.ref }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+      - name: Produce release integrity files
+        env:
+          RELEASE_TAG: ${{ inputs.tag || gitea.ref_name }}
+        run: |
+          set -eu
+          (cd dist && sha256sum cvedex-* > SHA256SUMS)
+          git archive --format=tar.gz --prefix="cvedex-${RELEASE_TAG}/" HEAD > "dist/cvedex-${RELEASE_TAG}-source.tar.gz"
+          docker run --rm -v "$PWD:/src" -w /src casjaysdev/go:latest sh -lc 'cyclonedx-gomod app -json -output dist/cvedex-sbom.cdx.json ./src'
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        env:
+          GITHUB_SERVER_URL: ${{ gitea.server_url }}
+          GITHUB_REPOSITORY: ${{ gitea.repository }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        with:
+          repository: ${{ gitea.repository }}
+          token: ${{ secrets.GITEA_TOKEN }}
+          tag_name: ${{ inputs.tag || gitea.ref_name }}
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

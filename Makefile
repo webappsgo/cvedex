@@ -1,12 +1,15 @@
 # Infer PROJECTNAME and PROJECTORG from git remote or directory path (NEVER hardcode)
 PROJECTNAME := $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*/([^/]+)(\.git)?$$|\1|' || basename "$$(pwd)")
 PROJECTORG := $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*/([^/]+)/[^/]+(\.git)?$$|\1|' || basename "$$(dirname "$$(pwd)")")
+PROJECT_ORG := $(shell sed -n 's/^project_org:[[:space:]]*//p' IDEA.md | head -n 1)
+INTERNAL_NAME := $(shell sed -n 's/^internal_name:[[:space:]]*//p' IDEA.md | head -n 1)
 
 # Version precedence: release.txt > env/default fallback
 VERSION ?= $(shell cat release.txt 2>/dev/null || echo "devel")
 
-# Build info — ISO 8601 / RFC 3339 UTC
-BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+# BuildEpoch is captured once and is the source for the embedded build date.
+BUILD_EPOCH := $(shell date -u +%s)
+BUILD_DATE := $(shell date -u -d @$(BUILD_EPOCH) +"%Y-%m-%dT%H:%M:%SZ")
 COMMIT_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "N/A")
 
 # Official site URL (OPTIONAL — sourced from site.txt if present, else env, else empty)
@@ -16,7 +19,7 @@ OFFICIALSITE := $(shell [ -f site.txt ] && cat site.txt || echo "${OFFICIALSITE:
 LDFLAGS := -s -w \
 	-X 'main.Version=$(VERSION)' \
 	-X 'main.CommitID=$(COMMIT_ID)' \
-	-X 'main.BuildDate=$(BUILD_DATE)' \
+	-X 'main.BuildEpoch=$(BUILD_EPOCH)' \
 	-X 'main.OfficialSite=$(OFFICIALSITE)'
 
 # Directories
@@ -25,23 +28,32 @@ RELDIR := releases
 
 # Go module cache dirs (bind-mounted from host for speed)
 GO_CACHE  ?= $(HOME)/go/pkg/mod
-GO_BUILD  ?= $(HOME)/.cache/go-build
+GO_BUILD  ?= $(HOME)/.cache/go-build/$(PROJECTNAME)
+
+# Resource caps are overridable and keep one build from starving other work.
+DOCKER_MEM        ?= 4g
+DOCKER_CPUS       ?= 2
+DOCKER_CPU_SHARES ?= 256
+DOCKER_TIMEOUT    ?= 3600
 
 # Build targets
 PLATFORMS ?= linux/amd64,linux/arm64
 
 # Docker — all builds happen inside casjaysdev/go:latest
 REGISTRY ?= ghcr.io/$(PROJECTORG)/$(PROJECTNAME)
-GO_DOCKER := docker run --rm -it \
+
+# Shared non-interactive, resource-bounded toolchain container wrapper.
+GO_DOCKER_RUN := timeout -k 30 $(DOCKER_TIMEOUT) docker run --rm --no-healthcheck \
 	--name $(PROJECTNAME)-$$(tr -dc 'a-z0-9' </dev/urandom | head -c8) \
+	--memory=$(DOCKER_MEM) --cpus=$(DOCKER_CPUS) --cpu-shares=$(DOCKER_CPU_SHARES) \
 	--entrypoint "" \
 	-v $(PWD):/app \
 	-v $(GO_CACHE):/usr/local/share/go/pkg/mod \
 	-v $(GO_BUILD):/usr/local/share/go/cache \
 	-w /app \
 	-e CGO_ENABLED=0 \
-	-e GOFLAGS=-buildvcs=false \
-	casjaysdev/go:latest
+	-e GOFLAGS=-buildvcs=false
+GO_DOCKER := $(GO_DOCKER_RUN) casjaysdev/go:latest
 
 .PHONY: build local release docker test dev clean
 
@@ -172,17 +184,34 @@ docker:
 # TEST - Run all tests with coverage enforcement (via Docker)
 # =============================================================================
 test:
+	@mkdir -p $(GO_CACHE) $(GO_BUILD)
 	@echo "Running tests with coverage..."
-	@mkdir -p "/tmp/$(PROJECTORG)"
-	@$(GO_DOCKER) sh -c "go mod download && \
-		COVDIR=\$$(mktemp -d /tmp/$(PROJECTORG)/$(PROJECTNAME)-XXXXXX) && \
-		go test -v -cover -coverprofile=\$$COVDIR/coverage.out ./... && \
-		COVERAGE=\$$(go tool cover -func=\$$COVDIR/coverage.out | grep total | awk '{print \$$3}' | sed 's/%//'); \
-		if [ \$$(echo \"\$$COVERAGE < 60\" | bc -l) -eq 1 ]; then \
-			echo \"ERROR: Coverage is \$$COVERAGE%, must be >= 60%\"; \
-			exit 1; \
-		fi && \
-		echo \"Tests complete - Coverage: \$$COVERAGE% (>= 60% required)\""
+	@$(GO_DOCKER) sh -c "set -eu; \
+	  TMP_BASE=\"\$${TMPDIR:-/tmp}/$(PROJECT_ORG)\"; \
+	  mkdir -p \"\$$TMP_BASE\"; \
+  COVDIR=; \
+  trap '[ -z "\$$COVDIR" ] || rm -rf -- "\$$COVDIR"' EXIT; \
+  go mod download; \
+  COVDIR=\$$(mktemp -d \"\$$TMP_BASE/$(INTERNAL_NAME)-XXXXXX\"); \
+	  if TMPDIR="\$$COVDIR" go test -v -cover -coverprofile=\"\$$COVDIR/coverage.out\" ./... > \"\$$COVDIR/go-test.log\" 2>&1; then \
+	    cat \"\$$COVDIR/go-test.log\"; \
+	  else \
+	    TEST_STATUS=\$$?; \
+	    cat \"\$$COVDIR/go-test.log\"; \
+	    exit \"\$$TEST_STATUS\"; \
+	  fi; \
+	  COVERAGE_REPORT=\$$(go tool cover -func=\"\$$COVDIR/coverage.out\"); \
+	  COVERAGE=\$$(printf '%s\\n' \"\$$COVERAGE_REPORT\" | awk '\$$1 == \"total:\" {gsub(/%/, \"\", \$$3); print \$$3}'); \
+	  if [ -z \"\$$COVERAGE\" ]; then \
+	    echo \"ERROR: Coverage total is missing\" >&2; \
+	    exit 1; \
+	  fi; \
+	  case \"\$$COVERAGE\" in *[!0-9.]* ) echo \"ERROR: Invalid coverage value: \$$COVERAGE\" >&2; exit 1 ;; esac; \
+	  if ! awk -v coverage=\"\$$COVERAGE\" 'BEGIN { exit !(coverage >= 60) }'; then \
+	    echo \"ERROR: Coverage is \$$COVERAGE%, must be >= 60%\" >&2; \
+	    exit 1; \
+	  fi; \
+	  echo \"Tests complete - Coverage: \$$COVERAGE% (>= 60% required)\""
 
 # =============================================================================
 # DEV - Quick build for local development/testing (to random temp dir)

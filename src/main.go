@@ -8,6 +8,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/casapps/cvedex/src/config"
 	"github.com/casapps/cvedex/src/mode"
@@ -19,9 +21,30 @@ import (
 var (
 	Version      = "devel"
 	CommitID     = "N/A"
+	// BuildDate is derived from BuildEpoch during initialization.
 	BuildDate    = "N/A"
+	// BuildEpoch is the Unix build timestamp set through -ldflags.
+	BuildEpoch   = "0"
 	OfficialSite = ""
 )
+
+func buildEpoch() int64 {
+	epoch, err := strconv.ParseInt(BuildEpoch, 10, 64)
+	if err != nil || epoch <= 0 {
+		return 0
+	}
+	return epoch
+}
+
+func init() {
+	setBuildDateFromEpoch()
+}
+
+func setBuildDateFromEpoch() {
+	if epoch := buildEpoch(); epoch > 0 {
+		BuildDate = time.Unix(epoch, 0).UTC().Format("2006-01-02T15:04:05Z")
+	}
+}
 
 func main() {
 	cfg, err := config.Load(Version, CommitID, BuildDate, OfficialSite)

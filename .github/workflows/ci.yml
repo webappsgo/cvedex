@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-26.04
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Vet
+        run: go vet ./...
+      - name: Static analysis
+        run: staticcheck ./...
+
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-26.04
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    env:
+      CGO_ENABLED: "0"
+      GOFLAGS: "-buildvcs=false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run tests with coverage
+        run: |
+          mkdir -p /tmp/casapps
+          COVDIR=$(mktemp -d /tmp/casapps/cvedex-XXXXXX)
+          echo "COVDIR=$COVDIR" >> "$GITHUB_ENV"
+          go test -cover -coverprofile="$COVDIR/coverage.out" ./...
+      - name: Enforce 60 percent coverage
+        run: |
+          test -s "$COVDIR/coverage.out" || { echo "::error::coverage profile is missing or empty"; exit 1; }
+          PCT=$(go tool cover -func="$COVDIR/coverage.out" | awk '/^total:/ {gsub("%", "", $3); print $3}')
+          [ -n "$PCT" ] || { echo "::error::coverage total is missing"; exit 1; }
+          awk -v pct="$PCT" 'BEGIN { if (pct < 60) { printf "::error::coverage %.1f%% < threshold 60%%\n", pct; exit 1 } }'
+
+  build:
+    if: github.event_name != 'schedule'
+    needs: [lint, test]
+    runs-on: ubuntu-26.04
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    env:
+      CGO_ENABLED: "0"
+      GOFLAGS: "-buildvcs=false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        run: go build ./...
+
+  vuln-scan:
+    runs-on: ubuntu-26.04
+    container:
+      image: casjaysdev/go:latest
+      options: "--user 0:0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Scan Go dependencies
+        run: govulncheck ./...
+
+  secret-scan:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Select event scan range
+        id: scope
+        run: |
+          ZERO=0000000000000000000000000000000000000000
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+            echo "results=verified,unknown" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = push ] && [ "${{ github.event.before }}" != "$ZERO" ]; then
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.after }}" >> "$GITHUB_OUTPUT"
+            echo "results=verified,unknown" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=" >> "$GITHUB_OUTPUT"
+            echo "head=" >> "$GITHUB_OUTPUT"
+            echo "results=verified" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: trufflesecurity/trufflehog@4ef51f69ca6347aaa76a5e64a87eac9c0c909f71 # v3.100.1
+        with:
+          base: ${{ steps.scope.outputs.base }}
+          head: ${{ steps.scope.outputs.head }}
+          extra_args: --results=${{ steps.scope.outputs.results }} --exclude-paths=.github/trufflehog-exclude.txt
+
+  workflow-policy:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Enforce action pinning and safe triggers
+        shell: bash
+        run: |
+          set -euo pipefail
+          if rg -n 'pull_request_target' .github/workflows .gitea/workflows .forgejo/workflows; then
+            echo "::error::pull_request_target is prohibited for this project"
+            exit 1
+          fi
+          if rg -n '^\s+uses:\s+[^@[:space:]]+@' .github/workflows .gitea/workflows .forgejo/workflows | rg -v '@[0-9a-f]{40}\s+#\s+v[0-9]'; then
+            echo "::error::Every external GitHub Action must use a full 40-character commit SHA and inline version annotation"
+            exit 1
+          fi
+          if rg -n '^\s+uses:\s+[^@]+@[0-9a-f]{40}(\s+#\s+v[0-9].*)?$' .github/workflows .gitea/workflows .forgejo/workflows | rg -v '# v[0-9]'; then
+            echo "::error::Every SHA-pinned action requires an inline version annotation"
+            exit 1
+          fi
+
+  image-scan:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build image for scanning
+        run: docker build --tag cvedex:ci --file docker/Dockerfile .
+      - name: Scan image for critical and high vulnerabilities
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --exit-code 1 --severity CRITICAL,HIGH cvedex:ci

@@ -1,32 +1,322 @@
-image: casjaysdev/go:latest
-
 variables:
+  PROJECT_NAME: "cvedex"
+  PROJECT_ORG: "casapps"
+  INTERNAL_NAME: "cvedex"
+  BUILD_IMAGE: "casjaysdev/go:latest"
   CGO_ENABLED: "0"
   GOFLAGS: "-buildvcs=false"
+  GIT_DEPTH: "0"
+
+default:
+  image: casjaysdev/go:latest
 
 stages:
+  - lint
   - test
+  - security
   - build
+  - prepare-release
+  - package
+  - release
+  - docker
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+.branch_or_mr_rules: &branch_or_mr_rules
+  - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"'
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.all_pipeline_rules: &all_pipeline_rules
+  - if: '$CI_COMMIT_BRANCH'
+  - if: '$CI_COMMIT_TAG'
+  - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  - if: '$CI_PIPELINE_SOURCE == "web"'
+
+lint:
+  stage: lint
+  interruptible: true
+  rules: *branch_or_mr_rules
+  script:
+    - go vet ./...
+    - staticcheck ./...
 
 test:
   stage: test
+  interruptible: true
+  rules: *branch_or_mr_rules
   script:
     - mkdir -p /tmp/casapps
     - COVDIR=$(mktemp -d /tmp/casapps/cvedex-XXXXXX)
     - go test -cover -coverprofile="$COVDIR/coverage.out" ./...
-  only:
-    - branches
-    - merge_requests
+    - test -s "$COVDIR/coverage.out" || { echo "coverage profile missing"; exit 1; }
+    - PCT=$(go tool cover -func="$COVDIR/coverage.out" | awk '/^total:/ {gsub("%", "", $3); print $3}')
+    - test -n "$PCT" || { echo "coverage total missing"; exit 1; }
+    - awk -v pct="$PCT" 'BEGIN { if (pct < 60) { printf "coverage %.1f%% < threshold 60%%\n", pct; exit 1 } }'
+
+secret-scan:
+  stage: security
+  image:
+    name: trufflesecurity/trufflehog:3.100.1@sha256:9c7a8325d43a4af2960d3f21d61a08981d8a1bf0542e007efa2e47097e386452
+    entrypoint: [""]
+  rules: *all_pipeline_rules
+  script:
+    - |
+      ZERO=0000000000000000000000000000000000000000
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ] && [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
+        trufflehog git file://. --since-commit "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --results=verified,unknown --exclude-paths=.github/trufflehog-exclude.txt --fail
+      elif [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "$ZERO" ] && [ "$CI_PIPELINE_SOURCE" = "push" ]; then
+        trufflehog git file://. --since-commit "$CI_COMMIT_BEFORE_SHA" --results=verified,unknown --exclude-paths=.github/trufflehog-exclude.txt --fail
+      else
+        trufflehog git file://. --results=verified --exclude-paths=.github/trufflehog-exclude.txt --fail
+      fi
+
+vuln-scan:
+  stage: security
+  rules:
+    - exists: [go.sum]
+      when: on_success
+  script:
+    - govulncheck ./...
+
+policy-check:
+  stage: security
+  image: casjaysdev/go:latest
+  rules: *all_pipeline_rules
+  script:
+    - |
+      set -eu
+      if grep -R -n 'pull_request_target' .github/workflows .gitea/workflows .forgejo/workflows; then
+        echo "Unsafe pull_request_target workflow found"
+        exit 1
+      fi
+      if grep -R -nE '^ +uses: +[^@[:space:]]+@' .github/workflows .gitea/workflows .forgejo/workflows | grep -vE '@[0-9a-f]{40} +# v[0-9]'; then
+        echo "External GitHub Actions must be pinned to full SHAs"
+        exit 1
+      fi
+      if grep -R -nE '^ +uses: +[^@]+@[0-9a-f]{40}($| +#)' .github/workflows .gitea/workflows .forgejo/workflows | grep -v '# v[0-9]'; then
+        echo "Every action SHA pin needs an inline version annotation"
+        exit 1
+      fi
+      if grep -nE 'image:\s+[^#[:space:]]+:latest' .gitlab-ci.yml | grep -v 'casjaysdev/go:latest'; then
+        echo "Unapproved floating CI image reference found"
+        exit 1
+      fi
+      if grep -E '^[[:space:]]*(image:|name:)[[:space:]]' .gitlab-ci.yml | grep -v 'casjaysdev/go:latest' | grep -Ev '@sha256:[0-9a-f]{64}'; then
+        echo "CI container images must be pinned by digest"
+        exit 1
+      fi
+
+image-scan:
+  stage: security
+  image: docker:27.5.1-cli@sha256:851f91d241214e7c6db86513b270d58776379aacc5eb9c4a87e5b47115e3065c
+  services:
+    - name: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+  rules: *all_pipeline_rules
+  script:
+    - docker build --tag cvedex:ci --file docker/Dockerfile .
+    - docker save cvedex:ci --output "$CI_PROJECT_DIR/cvedex-image.tar"
+    - docker run --rm -v "$CI_PROJECT_DIR:/scan" aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --input /scan/cvedex-image.tar --exit-code 1 --severity CRITICAL,HIGH
 
 build:
   stage: build
+  interruptible: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
-    - VERSION=$(cat release.txt 2>/dev/null || echo "devel")
-    - BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    - COMMIT_ID=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
-    - LDFLAGS="-s -w -X main.Version=$VERSION -X main.CommitID=$COMMIT_ID -X main.BuildDate=$BUILD_DATE"
     - mkdir -p binaries
-    - go build -ldflags "$LDFLAGS" -buildvcs=false -o binaries/cvedex ./src
-  only:
-    - branches
-    - merge_requests
+    - go build -buildvcs=false -trimpath -o binaries/cvedex ./src
+  artifacts:
+    paths: [binaries/cvedex]
+    expire_in: 7 days
+
+release-build:
+  stage: package
+  needs:
+    - job: release-info
+      artifacts: true
+    - job: release-tag-owner
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v/'
+    - if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: '$CI_COMMIT_BRANCH == "beta"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "devel" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+  parallel:
+    matrix:
+      - GOOS: [linux, darwin, windows, freebsd]
+        GOARCH: [amd64, arm64]
+  script:
+    - mkdir -p binaries
+    - VERSION="$CHANNEL_VERSION"
+    - COMMIT_ID="${CI_COMMIT_SHA:0:7}"
+    - BUILD_EPOCH=$(date -u +%s)
+    - OFFICIAL_SITE=$(cat site.txt 2>/dev/null || true)
+    - LDFLAGS="-s -w -X main.Version=$VERSION -X main.CommitID=$COMMIT_ID -X main.BuildEpoch=$BUILD_EPOCH -X main.OfficialSite=$OFFICIAL_SITE"
+    - OUTPUT="binaries/cvedex-${GOOS}-${GOARCH}"
+    - '[ "$GOOS" != windows ] || OUTPUT="${OUTPUT}.exe"'
+    - GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$OUTPUT" ./src
+    - sha256sum "$OUTPUT" > "$OUTPUT.sha256"
+    - |
+      if [ -d src/client ]; then
+        CLI_OUTPUT="binaries/cvedex-${GOOS}-${GOARCH}-cli"
+        [ "$GOOS" != windows ] || CLI_OUTPUT="${CLI_OUTPUT}.exe"
+        GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -buildvcs=false -ldflags "$LDFLAGS" -o "$CLI_OUTPUT" ./src/client
+        sha256sum "$CLI_OUTPUT" > "$CLI_OUTPUT.sha256"
+      fi
+  artifacts:
+    paths: [binaries/]
+    expire_in: 30 days
+
+release-tag-owner:
+  stage: prepare-release
+  image: casjaysdev/go:latest
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v/'
+    - if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "devel" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+  script:
+    - |
+      set -eu
+      test -n "${GITLAB_TOKEN:-}" || { echo "GITLAB_TOKEN with tag write permission is required"; exit 1; }
+      TAG="${CI_COMMIT_TAG:-devel}"
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then git -c "http.extraheader=PRIVATE-TOKEN: $GITLAB_TOKEN" fetch origin "$TAG"; fi
+      REMOTE_TAG=$(git -c "http.extraheader=PRIVATE-TOKEN: $GITLAB_TOKEN" ls-remote --tags origin "refs/tags/$TAG" | awk 'NR == 1 {print $1}')
+      if [ -n "$REMOTE_TAG" ]; then
+        git -c "http.extraheader=PRIVATE-TOKEN: $GITLAB_TOKEN" push -o ci.skip origin ":refs/tags/$TAG"
+      fi
+      git tag -f "$TAG" "$CI_COMMIT_SHA"
+      git -c "http.extraheader=PRIVATE-TOKEN: $GITLAB_TOKEN" push -o ci.skip origin "refs/tags/$TAG"
+
+release-info:
+  stage: prepare-release
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v/'
+    - if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: '$CI_COMMIT_BRANCH == "beta"'
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "devel" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+  script:
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        CHANNEL_VERSION="${CI_COMMIT_TAG#v}"
+      elif [ "$CI_COMMIT_BRANCH" = beta ]; then
+        CHANNEL_VERSION="$(date -u +%Y%m%d%H%M%S)-beta"
+      else
+        CHANNEL_VERSION="$(git rev-parse --short=7 HEAD)"
+      fi
+      printf 'CHANNEL_VERSION=%s\n' "$CHANNEL_VERSION" > release.env
+  artifacts:
+    reports:
+      dotenv: release.env
+    expire_in: 1 day
+
+release-manifest:
+  stage: release
+  image: casjaysdev/go:latest
+  needs: [release-build]
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v/'
+    - if: '$CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+$/'
+  script:
+    - mkdir -p releases
+    - cp binaries/* releases/
+    - (cd releases && sha256sum cvedex-* > SHA256SUMS)
+    - cyclonedx-gomod app -json -output releases/cvedex-sbom.cdx.json ./src
+    - git archive --format=tar.gz --prefix="cvedex-${CI_COMMIT_TAG}/" "$CI_COMMIT_SHA" > "releases/cvedex-${CI_COMMIT_TAG}-source.tar.gz"
+  artifacts:
+    paths: [releases/]
+    expire_in: 30 days
+  release:
+    tag_name: "$CI_COMMIT_TAG"
+    name: "cvedex $CI_COMMIT_TAG"
+    description: |
+      Changes: $CI_COMMIT_MESSAGE
+      Breaking changes: Review and call out any breaking changes in the tagged commit message and change set.
+
+channel-release:
+  stage: release
+  image: casjaysdev/go:latest
+  needs:
+    - job: release-build
+      artifacts: true
+    - job: release-info
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "beta"'
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "devel" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+  script:
+    - mkdir -p releases
+    - cp binaries/* releases/
+    - (cd releases && sha256sum cvedex-* > SHA256SUMS)
+    - cyclonedx-gomod app -json -output releases/cvedex-sbom.cdx.json ./src
+    - git archive --format=tar.gz --prefix="cvedex-${CHANNEL_VERSION}/" "$CI_COMMIT_SHA" > "releases/cvedex-${CHANNEL_VERSION}-source.tar.gz"
+  artifacts:
+    paths: [releases/]
+    expire_in: 30 days
+  release:
+    tag_name: "$CHANNEL_VERSION"
+    name: "cvedex $CHANNEL_VERSION"
+    description: |
+      Changes: $CI_COMMIT_MESSAGE
+      Breaking changes: Review and call out any breaking changes in the channel change set.
+
+docker-build:
+  stage: docker
+  image: docker:27.5.1-cli@sha256:851f91d241214e7c6db86513b270d58776379aacc5eb9c4a87e5b47115e3065c
+  services:
+    - name: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+  rules:
+    - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - SHORT_SHA="${CI_COMMIT_SHA:0:7}"
+    - BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    - docker buildx create --use
+    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="${CI_COMMIT_TAG#v}" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .
+    - if [ "$CI_COMMIT_BRANCH" = beta ]; then docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION=beta --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:beta" --push --provenance=false .; fi
+    - if [ -n "$CI_COMMIT_TAG" ]; then VERSION="${CI_COMMIT_TAG#v}"; docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="$VERSION" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$VERSION" --tag "$CI_REGISTRY_IMAGE:latest" --tag "$CI_REGISTRY_IMAGE:$(date -u +%y%m)" --push --provenance=false .; fi
+
+docker-devel:
+  stage: docker
+  image: docker:27.5.1-cli@sha256:851f91d241214e7c6db86513b270d58776379aacc5eb9c4a87e5b47115e3065c
+  services:
+    - name: docker:27.5.1-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE != "schedule" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "docker" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    - SHORT_SHA="${CI_COMMIT_SHA:0:7}"
+    - docker buildx create --use
+    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile.dev --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:devel" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .
