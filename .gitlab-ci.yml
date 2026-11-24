@@ -296,11 +296,12 @@ docker-build:
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - SHORT_SHA="${CI_COMMIT_SHA:0:7}"
+    - BUILD_EPOCH=$(date -u +%s)
     - BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     - docker buildx create --use
-    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="${CI_COMMIT_TAG#v}" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .
-    - if [ "$CI_COMMIT_BRANCH" = beta ]; then docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION=beta --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:beta" --push --provenance=false .; fi
-    - if [ -n "$CI_COMMIT_TAG" ]; then VERSION="${CI_COMMIT_TAG#v}"; docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="$VERSION" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$VERSION" --tag "$CI_REGISTRY_IMAGE:latest" --tag "$CI_REGISTRY_IMAGE:$(date -u +%y%m)" --push --provenance=false .; fi
+    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="${CI_COMMIT_TAG#v}" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .
+    - if [ "$CI_COMMIT_BRANCH" = beta ]; then docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION=beta --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:beta" --push --provenance=false .; fi
+    - if [ -n "$CI_COMMIT_TAG" ]; then VERSION="${CI_COMMIT_TAG#v}"; docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="$VERSION" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$VERSION" --tag "$CI_REGISTRY_IMAGE:latest" --tag "$CI_REGISTRY_IMAGE:$(date -u +%y%m)" --push --provenance=false .; fi
 
 docker-devel:
   stage: docker
@@ -316,7 +317,8 @@ docker-devel:
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "docker" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master")'
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - BUILD_EPOCH=$(date -u +%s)
     - BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     - SHORT_SHA="${CI_COMMIT_SHA:0:7}"
     - docker buildx create --use
-    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile.dev --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:devel" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .
+    - docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile.dev --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:devel" --tag "$CI_REGISTRY_IMAGE:$SHORT_SHA" --push --provenance=false .

@@ -8,13 +8,14 @@ RUN apk add --no-cache git bash
 ARG TARGETARCH
 ARG VERSION=dev
 ARG BUILD_DATE
+ARG BUILD_EPOCH=0
 ARG COMMIT_ID
 ARG OFFICIAL_SITE
 
 WORKDIR /app
 
 # Copy go.mod first for layer caching
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # Copy source and build
@@ -23,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags "-s -w \
       -X 'main.Version=${VERSION}' \
       -X 'main.CommitID=${COMMIT_ID}' \
-      -X 'main.BuildDate=${BUILD_DATE}' \
+      -X 'main.BuildEpoch=${BUILD_EPOCH}' \
       -X 'main.OfficialSite=${OFFICIAL_SITE}'" \
     -o /app/binary/cvedex ./src
 

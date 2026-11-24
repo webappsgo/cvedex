@@ -52,6 +52,7 @@ jobs:
           echo "version=${VERSION:-devel}" >> "$GITHUB_OUTPUT"
           echo "commit=$SHA" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -63,6 +64,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             BUILD_DATE=${{ steps.meta.outputs.date }}
+            BUILD_EPOCH=${{ steps.meta.outputs.epoch }}
             COMMIT_ID=${{ steps.meta.outputs.commit }}
 
   devel:
@@ -92,6 +94,7 @@ jobs:
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -105,4 +108,5 @@ jobs:
           build-args: |
             VERSION=devel
             BUILD_DATE=${{ steps.meta.outputs.date }}
+            BUILD_EPOCH=${{ steps.meta.outputs.epoch }}
             COMMIT_ID=${{ steps.meta.outputs.commit }}

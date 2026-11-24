@@ -298,22 +298,23 @@ pipeline {
                 withCredentials([string(credentialsId: 'github-token', variable: 'REGISTRY_TOKEN')]) {
                     sh '''
                         set -eu
+                        BUILD_EPOCH=$(date -u +%s)
                         BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
                         COMMIT_ID=$(git rev-parse --short=7 HEAD)
                         IMAGE=ghcr.io/casapps/cvedex
                         echo "$REGISTRY_TOKEN" | docker login ghcr.io -u webappsgo --password-stdin
                         docker buildx create --use || docker buildx use default
-                        docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="${TAG_NAME:-devel}" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:$COMMIT_ID" --provenance=false --push .
+                        docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="${TAG_NAME:-devel}" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:$COMMIT_ID" --provenance=false --push .
                         docker run --rm aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e image --exit-code 1 --severity CRITICAL,HIGH "$IMAGE:$COMMIT_ID"
                         if [ "${BRANCH_NAME:-}" = beta ]; then
-                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION=beta --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:beta" --provenance=false --push .
+                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION=beta --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:beta" --provenance=false --push .
                         fi
                         if [ -n "${TAG_NAME:-}" ]; then
                             VERSION="${TAG_NAME#v}"
-                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="$VERSION" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:$VERSION" --tag "$IMAGE:latest" --tag "$IMAGE:$(date -u +%y%m)" --provenance=false --push .
+                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile --build-arg VERSION="$VERSION" --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:$VERSION" --tag "$IMAGE:latest" --tag "$IMAGE:$(date -u +%y%m)" --provenance=false --push .
                         fi
                         if [ "${BRANCH_NAME:-}" = main ] || [ "${BRANCH_NAME:-}" = master ]; then
-                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile.dev --build-arg VERSION=devel --build-arg BUILD_DATE="$BUILD_DATE" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:devel" --provenance=false --push .
+                            docker buildx build --platform linux/amd64,linux/arm64 --file docker/Dockerfile.dev --build-arg VERSION=devel --build-arg BUILD_DATE="$BUILD_DATE" --build-arg BUILD_EPOCH="$BUILD_EPOCH" --build-arg COMMIT_ID="$COMMIT_ID" --tag "$IMAGE:devel" --provenance=false --push .
                         fi
                     '''
                 }

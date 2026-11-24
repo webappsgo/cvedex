@@ -71,6 +71,7 @@ jobs:
           build-args: |
             VERSION=${{ env.VERSION }}
             BUILD_DATE=${{ env.BUILD_DATE }}
+            BUILD_EPOCH=${{ env.BUILD_EPOCH }}
             COMMIT_ID=${{ env.COMMIT_ID }}
 
   build-devel:
@@ -91,6 +92,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set build metadata
         run: |
+          echo "BUILD_EPOCH=$(date -u +%s)" >> "$GITHUB_ENV"
           echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           echo "COMMIT_ID=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
           echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_ENV"
@@ -107,4 +109,5 @@ jobs:
           build-args: |
             VERSION=devel
             BUILD_DATE=${{ env.BUILD_DATE }}
+            BUILD_EPOCH=${{ env.BUILD_EPOCH }}
             COMMIT_ID=${{ env.COMMIT_ID }}
