@@ -10,7 +10,7 @@ The repository includes Compose files under `docker/`. The production image must
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-The current Compose manifest is being brought into sync with the DNS service. Until that is complete, review its published ports before using it.
+The Compose manifests publish HTTP plus DNS over both UDP and TCP. Persistent `/data` storage holds the verified dataset and SQLite databases; `/config` holds operator configuration.
 
 ## Build from source
 
@@ -24,7 +24,7 @@ The generated server binary is placed under `binaries/`.
 
 ## Runtime data
 
-The server loads a verified dataset snapshot from `<data_dir>/cvedex-data.json.gz` and its SHA-256 file at `<data_dir>/cvedex-data.json.gz.sha256`. A missing snapshot leaves the CVE data readiness check unhealthy. Dataset generation and scheduled publication are documented in [Development](development.md).
+The server downloads and verifies the dataset at first start, then refreshes daily by default. A verified snapshot and checksum are persisted under `<data_dir>`. If distribution is unavailable, a cached snapshot continues serving; without any valid snapshot, readiness stays unhealthy. Dataset generation and scheduled publication are documented in [Development](development.md).
 
 ## Ports and privileges
 
