@@ -31,7 +31,7 @@ app_name:      cvedex
 - JSON gateway exposing per-CVE detail, vendor reverse lookups, product reverse lookups, vendor/product enumeration, full-text search, KEV catalog dump, DNSSEC DS record, and zone-file download
 - DNSSEC signing (offline by default, online optional)
 - AXFR/IXFR/NOTIFY for slaving the zone into existing DNS infrastructure
-- Three modes: long-running server, one-shot zone-file generator, one-shot sync-only refresh
+- Four modes: long-running server, one-shot zone-file generator, one-shot data generator, and one-shot sync-only refresh
 - Daily refresh from the canonical sources with atomic zone swap and graceful degradation
 - A landing page served at the zone apex (and at any unknown hostname under the zone) explaining what cvedex is and how to use it
 
@@ -41,7 +41,7 @@ app_name:      cvedex
 - Not a general-purpose DNS server (it serves the CVE zone and nothing else; out-of-zone queries are REFUSED by default)
 - No write API — the zone is read-only, rebuilt from canonical sources
 - No operator-injected custom records — the zone is built exclusively from canonical sources, no manual additions, no per-deployment local extensions
-- No web UI for browsing CVEs (the JSON gateway is for clients; humans use `dig`, `curl`, or downstream tools)
+- No write or curation interface; CVE data is read-only, with browser pages and API responses following the server-rendered application requirements in AI.md
 - No vendor-neutral reverse-CNAME-for-vendor scheme via DNS — vendor/product reverse lookups live in the JSON gateway because they don't fit a DNS-shaped query model
 - No DNS-over-TLS or DNS-over-HTTPS — operators who want encrypted DNS transport front cvedex with a resolver that supports it
 
@@ -164,7 +164,7 @@ Why this architecture:
 - Data-quality fixes (parser bugs, schema decisions, edge-case handling) ship once via the workflow rather than per-deployment
 - Operators who need independence from the project's release pipeline can run their own copy of the workflow and configure cvedex to fetch from their own URL — same data file format, different distribution origin
 
-The data-file URL is operator-configuraribution endpoint, verify SHA-256 checksum, parse, build a fresh in-memory zone in a staging structure, sign with DNSSEC, atomically swap into place.
+At each refresh, a running instance fetches the configured data file from its distribution endpoint, verifies the SHA-256 checksum, parses it, builds a fresh in-memory zone in a staging structure, signs with DNSSEC, and atomically swaps it into place.
 - On successful swap: SOA serial advances, NOTIFY is sent to configured secondaries.
 - On any failure (fetch, checksum mismatch, schema-version mismatch, parse, sign, disk): the previous good zone keeps serving, the failure is logged and surfaced via metrics, the SOA serial does NOT advance.
 - If the distribution endpoint is unreachable: the running zone keeps serving previous data; staleness is exposed via the `built.cve` and `source.cve` index records and via metrics.
@@ -200,7 +200,9 @@ The HTTP gateway (routing/middleware/auth/CORS/rate-limiting/health/readiness/me
 ### Modes of operation
 
 - **Server (default)**: long-running daemon. Listens on UDP+TCP for DNS and on the template-defined HTTP listener. Fetches the data file on its refresh schedule. Atomic zone swap on rebuild — no query downtime.
-- **Generate-zone**: one-shot. Fetches the latest data file, writes a signed BIND-format zone file to disk, exits. For operators wble. Default points at the project's GitHub Releases. Operators can mirror, self-host, or air-gap as needed. The data file format is schema-versioned so that newer cvedex binaries can refuse to load incompatible older data files (and vice versa).
+- **Generate-zone**: one-shot. Fetches the latest data file, writes a signed BIND-format zone file to disk, and exits. The data-file URL defaults to the project's GitHub Releases; operators can mirror or self-host it. The data file format is schema-versioned so newer cvedex binaries can refuse incompatible data files.
+- **Generate-data**: one-shot. Processes cvelistV5, CISA KEV, and FIRST.org EPSS into the canonical data file. Used by the scheduled data-generation workflow and by operators who self-host that pipeline.
+- **Sync-only**: one-shot. Fetches the latest data file and builds the zone without starting DNS or HTTP listeners.
 
 ### Zone naming and per-CVE records
 
@@ -276,8 +278,8 @@ Out-of-zone queries are REFUSED by default. Optional forward-to-upstream is avai
 
 cvedex is a clusterable DNS server (per the template's app-type matrix: cluster nodes ✓, managed nodes ✗, HA ✓). Each instance is independent and stateless beyond `{data_dir}` plus DNSSEC keys. Two deployment patterns are supported:
 
-- **Independent instances**: each instance refreshes from cvelistV5 directly on its own schedule. Simplest topology. Slight zone-content drift between instances is acceptable for this use case (the data is the same, the SOA serials may differ by minutes).
-- **Primary / secondary**: one instance acts as primary, refreshes from cvelistV5, sends NOTIFY to secondaries; secondaries pull via AXFR/IXFR. Zone-consistent across instances. DNSSEC keys must be shared across primaries if running active-active primaries (operator concern).
+- **Independent instances**: each instance refreshes from the configured data-file distribution endpoint on its own schedule. Simplest topology. Slight zone-content drift between instances is acceptable for this use case (the data is the same, the SOA serials may differ by minutes).
+- **Primary / secondary**: one instance acts as primary, refreshes from the configured data-file distribution endpoint, and sends NOTIFY to secondaries; secondaries pull via AXFR/IXFR. Zone-consistent across instances. Only the separate Generate-data pipeline reads raw upstream sources. DNSSEC keys must be shared across primaries if running active-active primaries (operator concern).
 
 ### Documentation that ships with the project
 
@@ -287,4 +289,3 @@ cvedex is a clusterable DNS server (per the template's app-type matrix: cluster 
 - An operator guide covering both deployment modes, DNSSEC key generation and rotation, parent-zone delegation for delegated-subdomain mode, trust-anchor distribution for custom-TLD mode, and AXFR secondary setup
 - Operator notes on configuring the data-file URL, mirroring or self-hosting the data file, and self-hosting the data-generation workflow
 - Sample configuration snippets for slaving the cvedex zone into BIND, Knot, and PowerDNS as secondaries
-
