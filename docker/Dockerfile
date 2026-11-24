@@ -3,8 +3,6 @@
 # =============================================================================
 FROM casjaysdev/go:latest AS builder
 
-RUN apk add --no-cache git bash
-
 ARG TARGETARCH
 ARG VERSION=dev
 ARG BUILD_DATE
