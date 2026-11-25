@@ -63,8 +63,9 @@ BIND master-file format from `/api/v1/zone`.
 
 ## HTTP JSON gateway
 
-The read-only API is rooted at `/api/v1`. Its routes and response behavior are
-documented in [API reference](api.md). Examples:
+The public data API is rooted at `/api/v1` and is read-only. Admin settings
+routes are separate and support authenticated updates. The routes and response
+behavior are documented in [API reference](api.md). Examples:
 
 The host HTTP port is persisted in `server.yml`; set `CVEDEX_PORT=64580` at
 startup to use the example port below.

@@ -16,11 +16,13 @@ request limiting is enabled by default at 100 requests per client IP per
 minute and can be tuned with `HTTP_RATE_LIMIT_ENABLED`,
 `HTTP_RATE_LIMIT_REQUESTS`, and `HTTP_RATE_LIMIT_WINDOW`. Client addresses use
 the direct connection peer; forwarded headers are not trusted. First-run
-administrator authentication uses session and CSRF protections. The settings
-panel controls refresh, redirect, transfer ACL, NOTIFY, DNSSEC, and DNS
-response limiting. DNSSEC signs the published zone when a verified dataset is
-available. Protect the persistent data directory because it contains private
-DNSSEC keys.
+administrator pages use session and CSRF protections. Admin API routes require
+the operator token in an `Authorization: Bearer` header and do not accept
+session cookies. The settings panel controls refresh, redirect, transfer ACL,
+NOTIFY, DNSSEC, and DNS response limiting. DNSSEC signs the published zone
+when a verified dataset is available. Protect the private configuration
+directory, which contains the operator token, and the persistent data directory,
+which contains private DNSSEC keys.
 
 ## Reporting
 

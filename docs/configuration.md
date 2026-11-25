@@ -88,4 +88,9 @@ When running as root, the default directories are `/etc/casapps/cvedex`, `/var/l
 
 The service stores the verified snapshot as `cvedex-data.json.gz` with a matching `cvedex-data.json.gz.sha256` file. A refresh validates HTTPS, the SHA-256 checksum, the schema, and the signed zone before replacing the compressed file and publishing the new snapshot. A failed refresh leaves the last verified dataset and signed zone active and reports degraded health. DNSSEC private keys are stored in `DATA_DIR/security/dnssec/` with owner-only permissions. With no valid local snapshot, readiness remains unhealthy and DNS returns a server failure for in-zone queries.
 
+The first service start creates `{CONFIG_DIR}/secrets.yml` with mode `0600`
+and a generated `server.token` operator credential. The raw token is printed
+once at startup. Keep the file private; do not include it in support bundles
+or publish it in logs.
+
 The built-in scheduler refreshes the dataset daily by default with ±10% jitter. `SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to mirror a data release from another trusted distribution endpoint.

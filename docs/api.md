@@ -1,6 +1,8 @@
 # JSON API
 
-The API is read-only and currently uses version `v1`. Responses use JSON. A missing dataset returns HTTP 503; an unknown CVE returns HTTP 404.
+The public data API uses version `v1` and is read-only. Admin settings routes
+are separate and support authenticated changes. Responses use JSON. A missing
+dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 
 | Method | Path | Behavior |
 |---|---|---|
@@ -28,6 +30,11 @@ PATCH). The JSON API does not grant cookie consent; the visitor must make that
 choice on the preferences page.
 
 The generated OpenAPI document is served at `/api/v1/server/swagger`; its browser page is `/server/docs/swagger`.
+
+Admin settings and DNSSEC key rotation use the server operator token as an
+HTTP Bearer credential. See [Administration](admin.md) for the routes and
+first-run token handling. A browser session cookie does not authenticate API
+requests.
 
 The host HTTP port is selected on first run and stored in `server.yml`. Set
 `CVEDEX_PORT=64580` when starting the service to use the port shown in the
