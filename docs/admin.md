@@ -15,3 +15,9 @@ with POST `/api/v1/server/{admin_path}/security/dnssec/rotate` for key rotation.
 All admin API requests require `Authorization: Bearer <operator-token>`; browser
 session cookies are not API credentials. Bearer-authenticated API requests do
 not use CSRF tokens.
+
+The admin security page at `/server/{admin_path}/security` shows the operator
+token masked. Regeneration requires the current administrator password, writes
+the replacement to `secrets.yml`, invalidates the previous token immediately,
+and records `security.operator_token_regenerated` in `LOG_DIR/audit.log`. The
+replacement is displayed once and is not returned by an API.
