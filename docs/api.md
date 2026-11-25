@@ -9,17 +9,29 @@ The API is read-only and currently uses version `v1`. Responses use JSON. A miss
 | GET | `/api/v1/cves` | Dataset record count and build metadata |
 | GET | `/api/v1/cves/{cve_id}` | One CVE record, including CVSS, affected products, references, KEV, and EPSS when present |
 | GET | `/api/v1/search?q={text}` | Description, identifier, vendor, and product search; supports `year`, `severity`, `kev`, `limit` (1–100), and numeric offset `cursor` |
-| GET | `/api/v1/vendors` | Sorted vendor names |
-| GET | `/api/v1/vendors/{vendor}` | CVEs associated with a vendor |
-| GET | `/api/v1/products` | Sorted product names |
-| GET | `/api/v1/products/{product}` | CVEs associated with a product |
+| GET | `/api/v1/vendors?limit=20&cursor=0` | Paginated vendors with CVE counts |
+| GET | `/api/v1/vendors/{vendor}?limit=20&cursor=0` | Paginated CVE IDs, severity counts, and most recent publish date for a vendor |
+| GET | `/api/v1/vendors/{vendor}/products?limit=20&cursor=0` | Paginated products and CVE counts for a vendor |
+| GET | `/api/v1/vendors/{vendor}/products/{product}?limit=20&cursor=0` | Paginated CVE IDs for a vendor/product pair |
+| GET | `/api/v1/products?limit=20&cursor=0` | Paginated products with CVE counts |
+| GET | `/api/v1/products/{product}?limit=20&cursor=0` | Paginated CVE IDs associated with a product across vendors |
+| GET | `/api/v1/cves/latest?limit=20` | Most recently published CVEs; limit is configurable from 1 to 100 |
 | GET | `/api/v1/kev` | KEV catalog entries in the dataset |
 | GET | `/api/v1/zone` | BIND-format zone snapshot download |
-| GET | `/api/v1/ds` | DNSSEC DS status; currently returns 503 because signing is not configured |
+| GET | `/api/v1/ds` | Current DNSSEC DS records; returns 503 until a signed zone is available |
 
 Public server information is available at `/api/v1/server/about`, `/privacy`, `/contact`, `/help`, `/help/mcp`, `/terms`, `/dpo`, `/security`, `/security/policy`, and `/security/thanks`. The corresponding HTML pages are under `/server/`.
 
+Guest theme and consent settings are editable at `/server/preferences` and
+available as JSON at `/api/v1/server/preferences` (GET and CSRF-protected
+PATCH). The JSON API does not grant cookie consent; the visitor must make that
+choice on the preferences page.
+
 The generated OpenAPI document is served at `/api/v1/server/swagger`; its browser page is `/server/docs/swagger`.
+
+The host HTTP port is selected on first run and stored in `server.yml`. Set
+`CVEDEX_PORT=64580` when starting the service to use the port shown in the
+examples below.
 
 ## Search example
 
@@ -27,4 +39,13 @@ The generated OpenAPI document is served at `/api/v1/server/swagger`; its browse
 curl -H 'Accept: application/json' 'http://127.0.0.1:64580/api/v1/search?q=linux&severity=critical&limit=10'
 ```
 
-Search cursors are numeric offsets into the stable CVE identifier ordering. The next offset is returned as `next_cursor`, or an empty string when there are no more results.
+List and search endpoints use a numeric offset cursor. Responses include `total`, `limit`, `cursor`, and `next_cursor`; the next offset is returned as a string, or an empty string when there are no more results. Vendor lookup responses include `severity_counts` and `most_recent` across the full match set, while `cve_ids` is the requested page. Latest results are sorted by published date descending, with the CVE ID breaking ties.
+
+## Lookup examples
+
+```sh
+curl 'http://127.0.0.1:64580/api/v1/cves/latest?limit=10'
+curl 'http://127.0.0.1:64580/api/v1/vendors/acme?limit=20&cursor=0'
+curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products/widget?limit=20'
+curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products?limit=50'
+```

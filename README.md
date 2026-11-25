@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/webappsgo/cvedex)](LICENSE.md)
 [![Release](https://img.shields.io/github/v/release/webappsgo/cvedex)](https://github.com/webappsgo/cvedex/releases)
 [![CI](https://github.com/webappsgo/cvedex/actions/workflows/ci.yml/badge.svg)](https://github.com/webappsgo/cvedex/actions/workflows/ci.yml)
+[![Documentation](https://readthedocs.org/projects/casapps-cvedex/badge/?version=latest)](https://casapps-cvedex.readthedocs.io/en/latest/)
 
 cvedex serves CVE data through an authoritative DNS zone and a read-only HTTP gateway. The default zone is `cve.`; deployments can choose another zone.
 
@@ -11,12 +12,14 @@ cvedex serves CVE data through an authoritative DNS zone and a read-only HTTP ga
 - DNS over UDP and TCP, with CVE detail labels, index records, RFC 8482 minimal `ANY`, and `REFUSED` outside the configured zone
 - Verified schema-versioned gzip dataset loading with SHA-256 validation
 - First-run dataset download and daily refresh from a checksummed HTTPS release, preserving the last verified snapshot on refresh errors
+- Offline DNSSEC signing with persisted ECDSA P-256 KSK/ZSK keys, NSEC3 denial proofs, and signed zone downloads
+- ACL-gated TCP AXFR/IXFR and best-effort NOTIFY for configured secondaries
 - JSON APIs for CVE detail and search, vendor and product lookup, KEV data, and BIND-format zone download
 - Server-rendered public information, CVE detail, and catalog pages
 - `cvedex-cli` for CVE lookup, search, dataset generation, data sync, and zone download
 - YAML and environment-based server configuration
 
-DNSSEC signing, zone transfers, rate limiting, and the authenticated admin panel remain required implementation work. See [Security](docs/security.md) and [Administration](docs/admin.md) for current limitations.
+DNS UDP and HTTP rate limiting are enabled by default. DNSSEC keys are created under the configured data directory and restricted to the service account. Transfers default to loopback-only access. See [Security](docs/security.md), [DNSSEC](docs/dnssec.md), and [Administration](docs/admin.md) for operator guidance.
 
 ## Build
 
@@ -45,11 +48,11 @@ This writes a `.sha256` file next to the dataset. The server downloads the publi
 mkdir -p "${TMPDIR:-/tmp}/casapps"
 DATA_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
 cp ./cvedex-data.json.gz* "$DATA_DIR/"
-DATA_DIR="$DATA_DIR" DNS_ADDRESS=127.0.0.1 DNS_PORT=1053 \
+DATA_DIR="$DATA_DIR" CVEDEX_PORT=64580 DNS_ADDRESS=127.0.0.1 DNS_PORT=1053 \
   ./binaries/cvedex --mode development
 ```
 
-The default HTTP port is 64580. The default DNS port is 53 and usually requires elevated bind capability. Override it for local development as shown.
+The native HTTP port is selected once from 64000–64999 and saved in `server.yml`; containers listen on port 80. DNS uses port 53 on UDP and TCP. Override `DNS_PORT` for local development as shown.
 
 ## DNS examples
 
@@ -74,7 +77,7 @@ The status page is `/server/healthz`. See the [API reference](docs/api.md) for a
 
 ## Configuration
 
-The server accepts `--config PATH` for YAML configuration and environment overrides such as `ADDRESS`, `PORT`, `DNS_ADDRESS`, `DNS_PORT`, `DNS_ZONE`, and `DATA_DIR`. See [Configuration](docs/configuration.md).
+The server accepts `--config DIR` for YAML configuration and environment overrides such as `LISTEN`, `PORT`, `DNS_ADDRESS`, `DNS_PORT`, `DNS_ZONE`, `DATA_DIR`, `DATA_URL`, and `CHECKSUM_URL`. See [Configuration](docs/configuration.md).
 
 ## Documentation
 

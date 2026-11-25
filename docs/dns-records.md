@@ -21,4 +21,12 @@ The default authoritative zone is `cve.`. The CVE prefix is omitted from the own
 
 Zone indexes include `count.cve.`, `count.kev.cve.`, `latest.cve.`, `built.cve.`, `source.cve.`, and `version.cve.`. Per-year and per-severity counters are available under `count.year-{year}.cve.` and `count.severity-{severity}.cve.`.
 
-The apex serves SOA. Unknown names return NXDOMAIN; out-of-zone requests return REFUSED. `ANY` queries receive a minimal RFC 8482 response. DNSSEC, transfers, and NOTIFY are not yet implemented.
+The URI record and HTTP redirector use the same `REDIRECT_URL_TEMPLATE`, with `{year}`, `{sequence}`, and `{cve_id}` substitutions. DNS UDP responses are rate-limited by client by default.
+
+The apex serves SOA with a serial based on the last successful dataset build.
+Unknown names return NXDOMAIN with SOA authority; existing names queried for
+an absent type return NOERROR with SOA authority. Out-of-zone requests return
+REFUSED. `ANY` queries receive a minimal RFC 8482 response. When DNSSEC is
+enabled, the zone includes DNSKEY, RRSIG, NSEC3, and denial proof records. TCP
+AXFR/IXFR is restricted by `DNS_TRANSFER_ACL`; successful refreshes send
+best-effort NOTIFY to configured `DNS_NOTIFY_TARGETS`.

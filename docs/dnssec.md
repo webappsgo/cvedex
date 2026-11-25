@@ -1,5 +1,13 @@
 # DNSSEC
 
-DNSSEC key generation, signing, signature refresh, and DS publication are not implemented in the current build. The `/api/v1/ds` route therefore returns HTTP 503. Do not publish a parent-zone delegation that assumes this server signs its zone.
+When DNSSEC is enabled (the default), the server creates and persists ECDSA
+P-256 KSK and ZSK key pairs under `DATA_DIR/security/dnssec/`, signs each
+verified zone snapshot offline, and serves DNSKEY, RRSIG, NSEC3, and denial
+proof records. The signed BIND-format snapshot is available from
+`/api/v1/zone`; `/api/v1/ds` returns the DS record for the active KSK. Both
+endpoints remain unavailable until a verified dataset has been loaded.
 
-DNSSEC support is part of the project specification and remains required implementation work.
+Publish the returned DS at the parent zone before enabling validating
+delegation. Use the administration settings page to rotate keys; rotation
+publishes the new signed zone before replacing the active keys. Keep the data
+directory persistent and protected because it contains the private keys.

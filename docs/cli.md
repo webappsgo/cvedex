@@ -35,4 +35,5 @@ cvedex-cli data sync --data-url https://example.invalid/cvedex-data.json.gz \
 cvedex-cli zone generate --output ./cvedex.zone
 ```
 
-This writes an unsigned zone file. DNSSEC signing and offline zone generation are not implemented yet.
+The downloaded zone file is signed when the server has DNSSEC enabled and a
+verified dataset loaded. The CLI does not sign zones locally.

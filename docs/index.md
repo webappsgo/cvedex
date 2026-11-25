@@ -18,7 +18,10 @@ curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3
 - Server-rendered pages for CVEs, search, catalogs, and service information
 - `cvedex-cli` for data generation, lookup, search, sync, and zone download
 
-DNSSEC signing, zone transfers, rate limiting, and the authenticated admin panel are still required implementation work. See [Security](security.md) and [Administration](admin.md) for current operational limits.
+DNS UDP and HTTP rate limiting are enabled by default. First-run admin
+authentication and the settings panel are available. DNSSEC signing, ACL
+restricted transfers, and NOTIFY are supported; see [Security](security.md)
+and [Administration](admin.md) for operator guidance.
 
 ## Documentation
 

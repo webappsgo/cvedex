@@ -197,6 +197,28 @@ The HTTP gateway (routing/middleware/auth/CORS/rate-limiting/health/readiness/me
 - **DNSSEC DS record** — for parent-zone delegation
 - **Zone-file download** — current zone in BIND master-file format (same as Generate mode output)
 
+### HTTP route inventory
+
+Every public data endpoint has a server-rendered page showing the same data.
+The paired route inventory is:
+
+| Page route | JSON/API route | Purpose |
+|---|---|---|
+| `/` | `/api/v1` | Project landing page and API identity |
+| `/cves` | `/api/v1/cves` | Dataset metadata and record count |
+| `/cves/{cve_id}` | `/api/v1/cves/{cve_id}` | CVE detail |
+| `/cves/latest` | `/api/v1/cves/latest` | Latest published CVEs |
+| `/search` | `/api/v1/search` | Filtered CVE search |
+| `/vendors` | `/api/v1/vendors` | Vendor catalog |
+| `/vendors/{vendor}` | `/api/v1/vendors/{vendor}` | Vendor CVE lookup |
+| `/vendors/{vendor}/products` | `/api/v1/vendors/{vendor}/products` | Vendor product catalog |
+| `/vendors/{vendor}/products/{product}` | `/api/v1/vendors/{vendor}/products/{product}` | Vendor/product CVE lookup |
+| `/products` | `/api/v1/products` | Product catalog |
+| `/products/{product}` | `/api/v1/products/{product}` | Product CVE lookup |
+| `/kev` | `/api/v1/kev` | KEV catalog |
+| `/ds` | `/api/v1/ds` | Active DNSSEC DS record |
+| `/zone` | `/api/v1/zone` | BIND-format zone download |
+
 ### Modes of operation
 
 - **Server (default)**: long-running daemon. Listens on UDP+TCP for DNS and on the template-defined HTTP listener. Fetches the data file on its refresh schedule. Atomic zone swap on rebuild — no query downtime.
