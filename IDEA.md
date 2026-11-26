@@ -14,6 +14,7 @@ The zone is configurable. The default is `cve.` — a custom internal-use TLD fo
 project_name:  cvedex
 project_org:   casapps
 internal_name: cvedex
+internal_org:  casapps
 app_name:      cvedex
 ```
 
@@ -196,6 +197,38 @@ The HTTP gateway (routing/middleware/auth/CORS/rate-limiting/health/readiness/me
 - **Full KEV catalog** — current CISA KEV list as JSON
 - **DNSSEC DS record** — for parent-zone delegation
 - **Zone-file download** — current zone in BIND master-file format (same as Generate mode output)
+
+### API routes
+
+The route inventory below is the complete project-defined API surface. All
+routes are public, read-only `GET` requests except the explicitly listed
+preference and administrator routes. Data endpoints return a record or
+paginated data; unknown identifiers return `404`, invalid query parameters
+return `400`, and an unavailable dataset returns `503`.
+
+| Method | Path | Auth | Purpose and request/response summary |
+|---|---|---|---|
+| GET | `/api/v1` | None | API identity, version, and health link; returns project metadata. |
+| GET | `/api/v1/cves` | None | Dataset summary and record count; returns build metadata. |
+| GET | `/api/v1/cves/{cve_id}` | None | CVE detail; returns the full public CVE record. |
+| GET | `/api/v1/cves/latest?limit={n}` | None | Latest published records; returns a bounded list. |
+| GET | `/api/v1/search?q={query}&year={year}&severity={severity}&kev={bool}&limit={n}&cursor={offset}` | None | Search CVE descriptions and identifiers; returns filtered, paginated records. |
+| GET | `/api/v1/vendors?limit={n}&cursor={offset}` | None | Enumerate vendors; returns a paginated catalog with counts. |
+| GET | `/api/v1/vendors/{vendor}?limit={n}&cursor={offset}` | None | Reverse vendor lookup; returns paginated CVE IDs and severity/date summaries. |
+| GET | `/api/v1/vendors/{vendor}/products?limit={n}&cursor={offset}` | None | Enumerate products for a vendor; returns a paginated catalog with counts. |
+| GET | `/api/v1/vendors/{vendor}/products/{product}?limit={n}&cursor={offset}` | None | Reverse vendor/product lookup; returns paginated CVE IDs. |
+| GET | `/api/v1/products?limit={n}&cursor={offset}` | None | Enumerate products; returns a paginated catalog with counts. |
+| GET | `/api/v1/products/{product}?limit={n}&cursor={offset}` | None | Reverse product lookup; returns paginated CVE IDs. |
+| GET | `/api/v1/kev` | None | Retrieve the current included KEV catalog; returns entries and metadata. |
+| GET | `/api/v1/ds` | None | Retrieve the active DNSSEC DS record; returns `503` when unavailable. |
+| GET | `/api/v1/zone` | None | Download the active BIND-format zone; returns a zone file. |
+| GET | `/api/v1/server/{public_page}` | None | Read a template-defined public information page as structured page data. |
+| GET/PATCH | `/api/v1/server/preferences` | None | Read or update the guest's theme/consent preferences; PATCH accepts JSON and requires a CSRF token. |
+| GET/PATCH | `/api/v1/server/{admin_path}/settings` | Operator bearer token | Read or update server settings; PATCH accepts validated JSON. |
+| POST | `/api/v1/server/{admin_path}/security/dnssec/rotate` | Operator bearer token | Rotate DNSSEC keys; returns operation status without disclosing key material. |
+
+Health, OpenAPI, and documented compatibility aliases are defined by AI.md's
+server baseline and the implementation's OpenAPI document.
 
 ### HTTP route inventory
 
