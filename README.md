@@ -72,9 +72,9 @@ The CVE prefix is omitted from DNS names. The full record and index formats are 
 ## HTTP API
 
 ```sh
-curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
-curl -H 'Accept: application/json' 'http://127.0.0.1:64580/api/v1/search?q=linux&limit=10'
-curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/kev
+curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
+curl -q -LSsf -H 'Accept: application/json' 'http://127.0.0.1:64580/api/v1/search?q=linux&limit=10'
+curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/kev
 ```
 
 The status page is `/server/healthz`. See the [API reference](docs/api.md) for all routes and response formats.

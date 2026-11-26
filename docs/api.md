@@ -78,7 +78,7 @@ examples below.
 ## Search example
 
 ```sh
-curl -H 'Accept: application/json' 'http://127.0.0.1:64580/api/v1/search?q=linux&severity=critical&limit=10'
+curl -q -LSsf -H 'Accept: application/json' 'http://127.0.0.1:64580/api/v1/search?q=linux&severity=critical&limit=10'
 ```
 
 List and search endpoints use a numeric offset cursor. Responses include `total`, `limit`, `cursor`, and `next_cursor`; the next offset is returned as a string, or an empty string when there are no more results. Vendor lookup responses include `severity_counts` and `most_recent` across the full match set, while `cve_ids` is the requested page. Latest results are sorted by published date descending, with the CVE ID breaking ties.
@@ -86,16 +86,16 @@ List and search endpoints use a numeric offset cursor. Responses include `total`
 ## Lookup examples
 
 ```sh
-curl 'http://127.0.0.1:64580/api/v1/cves/latest?limit=10'
-curl 'http://127.0.0.1:64580/api/v1/vendors/acme?limit=20&cursor=0'
-curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products/widget?limit=20'
-curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products?limit=50'
+curl -q -LSsf 'http://127.0.0.1:64580/api/v1/cves/latest?limit=10'
+curl -q -LSsf 'http://127.0.0.1:64580/api/v1/vendors/acme?limit=20&cursor=0'
+curl -q -LSsf 'http://127.0.0.1:64580/api/v1/vendors/acme/products/widget?limit=20'
+curl -q -LSsf 'http://127.0.0.1:64580/api/v1/vendors/acme/products?limit=50'
 ```
 
 ## GraphQL example
 
 ```sh
-curl -H 'Content-Type: application/json' \
+curl -q -LSsf -H 'Content-Type: application/json' \
   -d '{"query":"{ dataset { record_count built_at } cve(id: \"CVE-2024-3094\") { id state description } }"}' \
   http://127.0.0.1:64580/api/graphql
 ```

@@ -82,13 +82,13 @@ startup to use the example port below.
 ```sh
 mkdir -p "${TMPDIR:-/tmp}/casapps"
 ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
-curl -H 'Accept: application/json' \
+curl -q -LSsf -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094'
-curl -H 'Accept: application/json' \
+curl -q -LSsf -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/search?q=linux&severity=critical&limit=10'
-curl -H 'Accept: application/json' \
+curl -q -LSsf -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/kev'
-curl -H 'Accept: application/json' \
+curl -q -LSsf -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/zone' -o "$ARTIFACT_DIR/cvedex.zone"
 ```
 

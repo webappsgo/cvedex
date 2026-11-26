@@ -7,7 +7,7 @@
 
 ```sh
 dig TXT severity.2024-3094.cve @127.0.0.1
-curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
+curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
 ```
 
 The sample HTTP command uses port 64580; set `CVEDEX_PORT=64580` when starting cvedex to use it. On first start cvedex downloads and verifies the current dataset. Until a valid snapshot is available, DNS data queries return `SERVFAIL` and readiness reports unhealthy. Later refreshes run daily by default; a failed refresh leaves the previous verified dataset serving.

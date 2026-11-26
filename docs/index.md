@@ -12,7 +12,7 @@ The service loads a verified compressed dataset generated from CVE Program v5 re
 
 ```sh
 dig TXT severity.2024-3094.cve @127.0.0.1
-curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
+curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094
 ```
 
 ## Interfaces
