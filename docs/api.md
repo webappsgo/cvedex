@@ -43,6 +43,22 @@ read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
 catalog, and reverse lookup queries accept bounded `limit` and `cursor`
 arguments.
 
+## Internal metrics
+
+Metrics are enabled by default and require a service-specific bearer token
+from `CONFIG_DIR/secrets.yml`. Tokens are never accepted in query parameters.
+Prometheus exposition is available at `/server/metrics` and
+`/server/metrics/prometheus`; the Grafana dashboard JSON and Loki-compatible
+recent log stream are at `/server/metrics/grafana` and `/server/metrics/loki`.
+The same handlers are mounted at `/api/v1/server/metrics/{service}` and
+`/api/metrics/{service}`. The root `/metrics[/{service}]` aliases are enabled
+by default and can be disabled with `server.metrics.root.enabled`.
+
+Each service uses its own credential: `prometheus`, `grafana`, or `loki`.
+Send it only as an HTTP `Authorization: Bearer <token>` header. The
+`server.metrics.auth.allow_unauthenticated` setting disables authentication
+for all services and is intended only for firewalled internal networks.
+
 Admin settings and DNSSEC key rotation use the server operator token as an
 HTTP Bearer credential. See [Administration](admin.md) for the routes and
 first-run token handling. A browser session cookie does not authenticate API

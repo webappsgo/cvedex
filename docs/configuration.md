@@ -22,6 +22,15 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `HTTP_RATE_LIMIT_ENABLED` | `true` | Enable per-client HTTP request limiting |
 | `HTTP_RATE_LIMIT_REQUESTS` | `100` | Requests allowed per client in each window |
 | `HTTP_RATE_LIMIT_WINDOW` | `1m` | HTTP rate-limit window; minimum `1s` |
+| `METRICS_ENABLED` | `true` | Enable authenticated Prometheus, Grafana, and Loki metrics services |
+| `METRICS_ROOT_ENABLED` | `true` | Mount root `/metrics[/{service}]` aliases |
+| `METRICS_ALLOW_UNAUTHENTICATED` | `false` | Skip metrics bearer-token checks; use only on firewalled internal networks |
+| `METRICS_INCLUDE_SYSTEM` | `true` | Collect CPU, memory, and data-directory disk metrics |
+| `METRICS_INCLUDE_RUNTIME` | `true` | Include Go runtime metrics |
+| `METRICS_LOKI_MAX_ENTRIES` | `1000` | Maximum recent log entries served by the Loki endpoint |
+| `METRICS_LOKI_MAX_AGE` | `1h` | Maximum age of entries served by the Loki endpoint |
+| `METRICS_DURATION_BUCKETS` | Built-in seconds buckets | Comma-separated HTTP duration histogram buckets |
+| `METRICS_SIZE_BUCKETS` | Built-in byte buckets | Comma-separated HTTP request/response size histogram buckets |
 | `BACKUP_DIR` | System backup directory when writable; otherwise mode-specific fallback | Backup destination directory |
 | `PID_FILE` | OS-specific | Server PID file path |
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
@@ -92,5 +101,10 @@ The first service start creates `{CONFIG_DIR}/secrets.yml` with mode `0600`
 and a generated `server.token` operator credential. The raw token is printed
 once at startup. Keep the file private; do not include it in support bundles
 or publish it in logs.
+
+The same file stores independently generated `mtr_` credentials under
+`server.metrics.auth.tokens.prometheus`, `.grafana`, and `.loki`. The server
+does not print these tokens; read them from the owner-only secrets file and
+send them only in the metrics `Authorization` header.
 
 The built-in scheduler refreshes the dataset daily by default with ±10% jitter. `SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to mirror a data release from another trusted distribution endpoint.
