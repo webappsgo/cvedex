@@ -26,6 +26,7 @@ dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 | GET, POST | `/api/graphql` | Direct aliases for the current version's read-only GraphQL endpoint |
 | GET | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in the `query` URL parameter |
 | POST | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in a JSON request body |
+| POST | `/api/v1/server/mcp` | MCP JSON-RPC transport; aliases `/api/mcp` and `/mcp` |
 
 Public server information is available at `/api/v1/server/about`, `/privacy`, `/contact`, `/help`, `/help/mcp`, `/terms`, `/dpo`, `/security`, `/security/policy`, and `/security/thanks`. The corresponding HTML pages are under `/server/`.
 
@@ -43,6 +44,18 @@ read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
 `products`, `product`, `latest_cves`, `kev`, `dataset`, `ds`, and `zone`. Search,
 catalog, and reverse lookup queries accept bounded `limit` and `cursor`
 arguments.
+
+## Model Context Protocol
+
+The HTTP MCP transport accepts JSON-RPC 2.0 POST requests at `/api/v1/server/mcp`,
+`/api/mcp`, and `/mcp`. Each request requires the operator Bearer token,
+`MCP-Protocol-Version: 2026-07-28`, a matching `Mcp-Method` header, and a
+matching protocol version in the JSON-RPC `_meta` object. The endpoint currently
+generates its tool catalogue from the OpenAPI route definitions and dispatches
+calls through the existing HTTP handlers. This implementation currently accepts
+the operator bearer token; scoped user and organization tokens are unavailable
+while PART 34 remains optional. That template conflict is recorded in
+`~/Projects/github/webappsgo/TODO.SERVER.md`.
 
 ## Internal metrics
 
