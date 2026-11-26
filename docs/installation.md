@@ -38,9 +38,12 @@ with `systemctl status cvedex`. A non-root invocation installs a per-user unit;
 check it with `systemctl --user status cvedex`.
 
 On an OpenRC host, use the same install command as root. Check the service with
-`rc-service cvedex status`; it is enabled in the default runlevel. Service
-management supports `--service start`, `stop`, `restart`, `reload`, `--disable`,
-and `--uninstall` on both systemd and OpenRC. On other hosts, run the binary
+`rc-service cvedex status`; it is enabled in the default runlevel. macOS uses a
+LaunchDaemon when installed as root and a LaunchAgent for a regular user.
+FreeBSD installs an rc.d service as root. Windows installs a Windows service
+when elevated and a per-user scheduled task otherwise. Service management
+supports start, stop, restart, reload, disable, status, and uninstall actions
+where the platform integration provides them. On other hosts, run the binary
 under the host's process supervisor.
 
 ## Runtime data

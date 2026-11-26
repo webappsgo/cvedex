@@ -31,6 +31,11 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `METRICS_DURATION_BUCKETS` | Built-in seconds buckets | Comma-separated HTTP duration histogram buckets |
 | `METRICS_SIZE_BUCKETS` | Built-in byte buckets | Comma-separated HTTP request/response size histogram buckets |
 | `BACKUP_DIR` | System backup directory when writable; otherwise mode-specific fallback | Backup destination directory |
+| `BACKUP_ENABLED` | `true` | Enable scheduled backups |
+| `BACKUP_HOURLY_ENABLED` | `false` | Enable incremental hourly backups |
+| `CLI_BINARY_DIR` | `{DATA_DIR}/cli` | Directory scanned for signed-off CLI release files exposed by autodiscovery |
+| `CLI_BINARY_DOWNLOAD_REQUIRE_AUTH` | `false` | Require authentication for CLI binary downloads |
+| `CLI_MIN_VERSION` | Empty | Minimum supported CLI version published by autodiscovery |
 | `PID_FILE` | OS-specific | Server PID file path |
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
 | `I2P_ENABLED` | `false` on hosts; `true` in containers | Enable the optional I2P eepsite |
@@ -58,6 +63,19 @@ server:
   pidfile: /run/casapps/cvedex/cvedex.pid
   data_dir: /var/lib/casapps/cvedex
   backup_dir: /mnt/Backups/casapps/cvedex
+  backup:
+    enabled: true
+    hourly_enabled: false
+    schedule: "0 2 * * *"
+    retention:
+      max_backups: 1
+      keep_weekly: 0
+      keep_monthly: 0
+      keep_yearly: 0
+      max_total_size: 10%
+    disk_threshold: 90
+    encryption:
+      enabled: false
   database:
     sqlite:
       path: /var/lib/casapps/cvedex/db
@@ -104,5 +122,19 @@ The same file stores independently generated `mtr_` credentials under
 `server.metrics.auth.tokens.prometheus`, `.grafana`, and `.loki`. The server
 does not print these tokens; read them from the owner-only secrets file and
 send them only in the metrics `Authorization` header.
+
+Scheduled backups default to 02:00 UTC. Configure the cron expression with
+`server.backup.schedule`; retention accepts a maximum daily count, weekly,
+monthly, and yearly full-backup counts, a total size limit, and a disk-use
+threshold. Set `server.backup.encryption.enabled` to require encrypted
+scheduled archives. The encryption password is stored encrypted in the secrets
+file and is not written as plain text to `server.yml`. Restore safety limits
+are available under `server.restore` and apply to admin and maintenance
+restores.
+
+`/api/autodiscover` publishes instance metadata and checksummed client release
+files from `CLI_BINARY_DIR` (or `{DATA_DIR}/cli`). Release binaries appear in
+the response only when their names, release version, and SHA-256 checksums
+match the files in that directory.
 
 The built-in scheduler refreshes the dataset daily by default with ±10% jitter. `SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to mirror a data release from another trusted distribution endpoint.

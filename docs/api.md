@@ -7,6 +7,7 @@ dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/v1` | API identity and health link |
+| GET | `/api/autodiscover` | Public instance metadata and checksummed CLI release inventory |
 | GET | `/api/v1/server/healthz` | Public service status |
 | GET | `/api/v1/cves` | Dataset record count and build metadata |
 | GET | `/api/v1/cves/{cve_id}` | One CVE record, including CVSS, affected products, references, KEV, and EPSS when present |
@@ -39,7 +40,7 @@ the direct alias for the current version. GET requests require a `query` URL
 parameter; POST requests accept a JSON object with a `query` field. The
 server-rendered query form is at `/server/docs/graphql`. GraphQL supports the
 read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
-`products`, `product`, `latest_cves`, `kev`, `dataset`, and `ds`. Search,
+`products`, `product`, `latest_cves`, `kev`, `dataset`, `ds`, and `zone`. Search,
 catalog, and reverse lookup queries accept bounded `limit` and `cursor`
 arguments.
 
