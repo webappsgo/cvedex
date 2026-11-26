@@ -21,6 +21,8 @@ dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 | GET | `/api/v1/kev` | KEV catalog entries in the dataset |
 | GET | `/api/v1/zone` | BIND-format zone snapshot download |
 | GET | `/api/v1/ds` | Current DNSSEC DS records; returns 503 until a signed zone is available |
+| GET | `/api/swagger` | Direct alias for the current version's OpenAPI document |
+| GET, POST | `/api/graphql` | Direct aliases for the current version's read-only GraphQL endpoint |
 | GET | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in the `query` URL parameter |
 | POST | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in a JSON request body |
 
@@ -31,10 +33,15 @@ available as JSON at `/api/v1/server/preferences` (GET and CSRF-protected
 PATCH). The JSON API does not grant cookie consent; the visitor must make that
 choice on the preferences page.
 
-The generated OpenAPI document is served at `/api/v1/server/swagger`; its browser page is `/server/docs/swagger`.
-The GraphQL schema is available at `/api/v1/server/graphql` and `/api/graphql`;
-the browser query form is `/server/docs/graphql`. GraphQL supports read queries
-only. Search and catalog queries accept bounded `limit` and `cursor` arguments.
+The OpenAPI document is served at `/api/v1/server/swagger` and its direct alias `/api/swagger`; its browser page is `/server/docs/swagger`.
+The GraphQL query endpoint is `/api/v1/server/graphql`, with `/api/graphql` as
+the direct alias for the current version. GET requests require a `query` URL
+parameter; POST requests accept a JSON object with a `query` field. The
+server-rendered query form is at `/server/docs/graphql`. GraphQL supports the
+read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
+`products`, `product`, `latest_cves`, `kev`, `dataset`, and `ds`. Search,
+catalog, and reverse lookup queries accept bounded `limit` and `cursor`
+arguments.
 
 Admin settings and DNSSEC key rotation use the server operator token as an
 HTTP Bearer credential. See [Administration](admin.md) for the routes and
