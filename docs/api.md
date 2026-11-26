@@ -50,14 +50,21 @@ from `CONFIG_DIR/secrets.yml`. Tokens are never accepted in query parameters.
 Prometheus exposition is available at `/server/metrics` and
 `/server/metrics/prometheus`; the Grafana dashboard JSON and Loki-compatible
 recent log stream are at `/server/metrics/grafana` and `/server/metrics/loki`.
-The same handlers are mounted at `/api/v1/server/metrics/{service}` and
-`/api/metrics/{service}`. The root `/metrics[/{service}]` aliases are enabled
+The same handlers are mounted at `/api/v1/server/metrics[/{service}]`,
+`/api/metrics[/{service}]`, and `/metrics[/{service}]`. The root aliases are enabled
 by default and can be disabled with `server.metrics.root.enabled`.
 
 Each service uses its own credential: `prometheus`, `grafana`, or `loki`.
 Send it only as an HTTP `Authorization: Bearer <token>` header. The
 `server.metrics.auth.allow_unauthenticated` setting disables authentication
 for all services and is intended only for firewalled internal networks.
+
+The registry includes application build and uptime information, normalized
+HTTP traffic and latency, SQLite query and connection data, administrator
+authentication and active-session aggregates, scheduler metric families, and
+HTTP/DNS rate-limit outcomes. Runtime and CPU/memory/data-directory disk
+families follow `include_runtime` and `include_system`. The Loki service exposes
+only bounded recent structured logs after credential redaction.
 
 Admin settings and DNSSEC key rotation use the server operator token as an
 HTTP Bearer credential. See [Administration](admin.md) for the routes and
