@@ -21,6 +21,8 @@ dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 | GET | `/api/v1/kev` | KEV catalog entries in the dataset |
 | GET | `/api/v1/zone` | BIND-format zone snapshot download |
 | GET | `/api/v1/ds` | Current DNSSEC DS records; returns 503 until a signed zone is available |
+| GET | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in the `query` URL parameter |
+| POST | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in a JSON request body |
 
 Public server information is available at `/api/v1/server/about`, `/privacy`, `/contact`, `/help`, `/help/mcp`, `/terms`, `/dpo`, `/security`, `/security/policy`, and `/security/thanks`. The corresponding HTML pages are under `/server/`.
 
@@ -30,6 +32,9 @@ PATCH). The JSON API does not grant cookie consent; the visitor must make that
 choice on the preferences page.
 
 The generated OpenAPI document is served at `/api/v1/server/swagger`; its browser page is `/server/docs/swagger`.
+The GraphQL schema is available at `/api/v1/server/graphql` and `/api/graphql`;
+the browser query form is `/server/docs/graphql`. GraphQL supports read queries
+only. Search and catalog queries accept bounded `limit` and `cursor` arguments.
 
 Admin settings and DNSSEC key rotation use the server operator token as an
 HTTP Bearer credential. See [Administration](admin.md) for the routes and
@@ -55,4 +60,12 @@ curl 'http://127.0.0.1:64580/api/v1/cves/latest?limit=10'
 curl 'http://127.0.0.1:64580/api/v1/vendors/acme?limit=20&cursor=0'
 curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products/widget?limit=20'
 curl 'http://127.0.0.1:64580/api/v1/vendors/acme/products?limit=50'
+```
+
+## GraphQL example
+
+```sh
+curl -H 'Content-Type: application/json' \
+  -d '{"query":"{ dataset { record_count built_at } cve(id: \"CVE-2024-3094\") { id state description } }"}' \
+  http://127.0.0.1:64580/api/graphql
 ```

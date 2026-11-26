@@ -15,6 +15,7 @@ cvedex serves CVE data through an authoritative DNS zone and a read-only HTTP ga
 - Offline DNSSEC signing with persisted ECDSA P-256 KSK/ZSK keys, NSEC3 denial proofs, and signed zone downloads
 - ACL-gated TCP AXFR/IXFR and best-effort NOTIFY for configured secondaries
 - JSON APIs for CVE detail and search, vendor and product lookup, KEV data, and BIND-format zone download
+- Read-only GraphQL API with a browser query form at `/server/docs/graphql`
 - Server-rendered public information, CVE detail, and catalog pages
 - `cvedex-cli` for CVE lookup, search, dataset generation, data sync, and zone download
 - YAML and environment-based server configuration
