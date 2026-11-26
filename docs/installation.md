@@ -22,7 +22,7 @@ make local
 
 The generated server binary is placed under `binaries/`.
 
-## Binary and systemd
+## Binary and Linux service managers
 
 Run the server binary directly to start it in the foreground. To install it as
 a systemd service on Linux, first place the binary at its permanent path, then
@@ -33,12 +33,15 @@ sudo /usr/local/bin/cvedex --service --install
 ```
 
 The installer creates the `cvedex` system account when needed, writes and
-enables the service unit, and starts the service. The generated system unit
-runs unprivileged and grants only the `CAP_NET_BIND_SERVICE` capability needed
-for DNS port 53. A non-root invocation installs a per-user unit instead; use
-`systemctl --user status cvedex` to check it. Service management supports
-`--service start`, `stop`, `restart`, `reload`, `--disable`, and `--uninstall`.
-On a host without systemd, run the binary under the host's process supervisor.
+enables the service unit, and starts the service. Check a systemd installation
+with `systemctl status cvedex`. A non-root invocation installs a per-user unit;
+check it with `systemctl --user status cvedex`.
+
+On an OpenRC host, use the same install command as root. Check the service with
+`rc-service cvedex status`; it is enabled in the default runlevel. Service
+management supports `--service start`, `stop`, `restart`, `reload`, `--disable`,
+and `--uninstall` on both systemd and OpenRC. On other hosts, run the binary
+under the host's process supervisor.
 
 ## Runtime data
 

@@ -26,4 +26,4 @@ which contains private DNSSEC keys.
 
 ## Reporting
 
-Use GitHub's private vulnerability reporting for the `casapps/cvedex` repository. Avoid publishing exploit details in public issues.
+Use GitHub's private vulnerability reporting for the `webappsgo/cvedex` repository when it is available. Avoid publishing exploit details in public issues.

@@ -10,6 +10,7 @@ cvedex serves CVE data through an authoritative DNS zone and a read-only HTTP ga
 ## Current capabilities
 
 - DNS over UDP and TCP, with CVE detail labels, index records, RFC 8482 minimal `ANY`, and `REFUSED` outside the configured zone
+- HTTP redirects for valid CVE hostnames to the configured canonical CVE URL, plus a landing page at the zone apex
 - Verified schema-versioned gzip dataset loading with SHA-256 validation
 - First-run dataset download and daily refresh from a checksummed HTTPS release, preserving the last verified snapshot on refresh errors
 - Offline DNSSEC signing with persisted ECDSA P-256 KSK/ZSK keys, NSEC3 denial proofs, and signed zone downloads
@@ -39,17 +40,18 @@ This creates `binaries/cvedex` and `binaries/cvedex-cli`.
 The scheduled GitHub workflow publishes the generated dataset to the `data-latest` prerelease. To build it yourself, use a local checkout of the CVE Program list; the command fetches CISA KEV and FIRST EPSS snapshots over HTTPS:
 
 ```sh
-cvedex-cli data generate --source-dir ./cvelistV5 --output ./cvedex-data.json.gz
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
+cvedex-cli data generate --source-dir ./cvelistV5 --output "$ARTIFACT_DIR/cvedex-data.json.gz"
 ```
 
-This writes a `.sha256` file next to the dataset. The server downloads the published dataset on first start and refreshes daily. Set `DATA_URL` and `CHECKSUM_URL` to use a mirror.
+This writes a `.sha256` file next to the dataset. Keep generated data in the temporary artifact directory rather than the source tree. The server downloads the published dataset on first start and refreshes daily. Set `DATA_URL` and `CHECKSUM_URL` to use a mirror.
 
 ## Run locally
 
 ```sh
 mkdir -p "${TMPDIR:-/tmp}/casapps"
 DATA_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
-cp ./cvedex-data.json.gz* "$DATA_DIR/"
 DATA_DIR="$DATA_DIR" CVEDEX_PORT=64580 DNS_ADDRESS=127.0.0.1 DNS_PORT=1053 \
   ./binaries/cvedex --mode development
 ```

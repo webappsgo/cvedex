@@ -61,6 +61,15 @@ cvedex serves AXFR and IXFR over TCP to addresses allowed by
 `DNS_NOTIFY_TARGETS`. The generated signed zone can also be downloaded in
 BIND master-file format from `/api/v1/zone`.
 
+## HTTP redirector
+
+Route the configured zone's apex and CVE hostnames to the cvedex HTTP listener.
+The apex serves the cvedex landing page. A hostname such as
+`2024-3094.cve.example` redirects with HTTP 302 to the configured
+`REDIRECT_URL_TEMPLATE` when that CVE is present in the verified dataset.
+Unknown CVEs and hostnames outside the configured zone return a not-found page.
+The same URL template is used by the CVE URI DNS records.
+
 ## HTTP JSON gateway
 
 The public data API is rooted at `/api/v1` and is read-only. Admin settings
@@ -71,6 +80,8 @@ The host HTTP port is persisted in `server.yml`; set `CVEDEX_PORT=64580` at
 startup to use the example port below.
 
 ```sh
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
 curl -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/cves/CVE-2024-3094'
 curl -H 'Accept: application/json' \
@@ -78,7 +89,7 @@ curl -H 'Accept: application/json' \
 curl -H 'Accept: application/json' \
   'http://127.0.0.1:64580/api/v1/kev'
 curl -H 'Accept: application/json' \
-  'http://127.0.0.1:64580/api/v1/zone' -o cvedex.zone
+  'http://127.0.0.1:64580/api/v1/zone' -o "$ARTIFACT_DIR/cvedex.zone"
 ```
 
 ## Data sources and mirrors

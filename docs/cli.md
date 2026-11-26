@@ -14,17 +14,21 @@ cvedex-cli --shell bash
 `data generate` builds the canonical compressed dataset from a local cvelistV5 checkout and the official KEV and EPSS feeds:
 
 ```sh
-cvedex-cli data generate --source-dir ./cvelistV5 --output ./cvedex-data.json.gz
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
+cvedex-cli data generate --source-dir ./cvelistV5 --output "$ARTIFACT_DIR/cvedex-data.json.gz"
 ```
 
-The command also writes the matching `.sha256` file. Feed URLs can be overridden with `--kev-url` and `--epss-url`.
+The command also writes the matching `.sha256` file. Feed URLs can be overridden with `--kev-url` and `--epss-url`. Keep generated files in the temporary artifact directory rather than the source tree.
 
 `data sync` downloads and verifies an operator-specified HTTPS data URL and checksum URL before writing a local snapshot:
 
 ```sh
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
 cvedex-cli data sync --data-url https://example.invalid/cvedex-data.json.gz \
   --checksum-url https://example.invalid/cvedex-data.json.gz.sha256 \
-  --output ./cvedex-data.json.gz
+  --output "$ARTIFACT_DIR/cvedex-data.json.gz"
 ```
 
 ## Zone download
@@ -32,7 +36,9 @@ cvedex-cli data sync --data-url https://example.invalid/cvedex-data.json.gz \
 `zone generate` downloads the BIND-format zone from the configured server:
 
 ```sh
-cvedex-cli zone generate --output ./cvedex.zone
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
+cvedex-cli zone generate --output "$ARTIFACT_DIR/cvedex.zone"
 ```
 
 The downloaded zone file is signed when the server has DNSSEC enabled and a
