@@ -19,9 +19,8 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `DNS_TRANSFER_ACL` | Loopback only when unset | IP addresses or CIDRs allowed to request TCP AXFR/IXFR |
 | `DNS_NOTIFY_TARGETS` | Empty | DNS secondary hostnames or `host:port` targets notified after a successful build |
 | `REDIRECT_URL_TEMPLATE` | `https://www.cve.org/CVERecord?id={cve_id}` | Shared CVE redirect and DNS URI target; placeholders are `{year}`, `{sequence}`, and `{cve_id}` |
-| `HTTP_RATE_LIMIT_ENABLED` | `true` | Enable per-client HTTP request limiting |
-| `HTTP_RATE_LIMIT_REQUESTS` | `100` | Requests allowed per client in each window |
-| `HTTP_RATE_LIMIT_WINDOW` | `1m` | HTTP rate-limit window; minimum `1s` |
+| `HTTP_RATE_LIMIT_REQUESTS` | `120` | Requests allowed per client in the current general HTTP window |
+| `HTTP_RATE_LIMIT_WINDOW` | `1m` | General HTTP rate-limit window; minimum `1s` |
 | `METRICS_ENABLED` | `true` | Enable authenticated Prometheus, Grafana, and Loki metrics services |
 | `METRICS_ROOT_ENABLED` | `true` | Mount root `/metrics[/{service}]` aliases |
 | `METRICS_ALLOW_UNAUTHENTICATED` | `false` | Skip metrics bearer-token checks; use only on firewalled internal networks |
@@ -68,8 +67,7 @@ server:
   redirect:
     url_template: https://www.cve.org/CVERecord?id={cve_id}
   rate_limit:
-    enabled: true
-    requests: 100
+    requests: 120
     window: 1m
   dns:
     address: 0.0.0.0

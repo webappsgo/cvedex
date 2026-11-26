@@ -10,6 +10,7 @@
 
 - [ ] Implement the required shared theme, i18n, and accessibility systems from PARTS 16 and 31 across pages, admin, CLI, and health output.
 - [ ] Implement mandatory metrics endpoints and per-service bearer authentication from PART 21.
+- [ ] Replace the optional IP-only fixed-window HTTP limiter with the always-on sliding-window policy from PART 1, including endpoint classes, per-token identity, auth failure and strict-action limits, global burst, persisted hot counters, and cache fallback.
 - [ ] Implement required scheduler tasks and admin controls from PART 19, preserving cvedex's daily refresh behavior.
 - [ ] Implement mandatory backup scheduling, retention, verification, and atomic restore behavior from PART 22.
 - [ ] Implement the mandatory TLS/certificate lifecycle surfaces from PART 15 where supported by the server deployment model.

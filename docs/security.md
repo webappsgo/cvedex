@@ -13,8 +13,8 @@
 DNS UDP equivalent-response rate limiting is enabled by default and can be
 tuned with `DNS_RRL_ENABLED`, `DNS_RRL_RATE`, and `DNS_RRL_BURST`. HTTP
 request limiting is enabled by default at 100 requests per client IP per
-minute and can be tuned with `HTTP_RATE_LIMIT_ENABLED`,
-`HTTP_RATE_LIMIT_REQUESTS`, and `HTTP_RATE_LIMIT_WINDOW`. Client addresses use
+minute and can be tuned with `HTTP_RATE_LIMIT_REQUESTS` and
+`HTTP_RATE_LIMIT_WINDOW`. The limiter is always enabled. Client addresses use
 the direct connection peer; forwarded headers are not trusted. First-run
 administrator pages use session and CSRF protections. Admin API routes require
 the operator token in an `Authorization: Bearer` header and do not accept
