@@ -15,6 +15,7 @@ curl -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/CVE-2024-3
 
 - DNS over UDP and TCP for per-CVE fields and zone indexes
 - HTTP JSON APIs for CVE lookup, search, reverse vendor/product lookups, KEV data, and zone download
+- Read-only GraphQL with a browser explorer and OpenAPI documentation with a browser reference
 - Server-rendered pages for CVEs, search, catalogs, and service information
 - `cvedex-cli` for data generation, lookup, search, sync, and zone download
 

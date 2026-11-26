@@ -92,6 +92,12 @@ snapshot by setting both URLs. See [Configuration](configuration.md) and
 
 ## Other protocols
 
-MCP, GraphQL, OAuth/OIDC, webhooks, email delivery, and federation are not
-enabled in the current build. The supported external interfaces are
-authoritative DNS and the HTTP JSON gateway described above.
+The server also exposes a read-only GraphQL API at `/api/v1/server/graphql`
+and `/api/graphql`. The browser explorer is served at
+`/server/docs/graphql`. The REST API has a generated OpenAPI document at
+`/api/v1/server/swagger`, its direct alias `/api/swagger`, and a browser
+reference at `/server/docs/swagger`; see the [API reference](api.md).
+
+MCP is disabled in this build. OAuth/OIDC, webhooks, email delivery, and
+federation are not enabled. The supported external interfaces are authoritative
+DNS, the REST JSON API, and the read-only GraphQL API.
