@@ -64,7 +64,10 @@ The generated discovery resources are controlled through YAML-only `web` and
 credentials, query, or fragment. `web.llms.include_endpoints` controls route
 listing and defaults to `true`; `web.llms.include_schemas` adds request/response
 schema names and defaults to `false`. At most ten custom llms sections are
-accepted; invalid sections are skipped with a warning. `web.robots.allow` and
+accepted; invalid sections are skipped with a warning. The generated llms
+contact section uses `server.contact.general.email` and
+`server.contact.security.email` when configured, and omits either line when its
+address is empty. `web.robots.allow` and
 `web.robots.deny` are absolute path lists used by `/robots.txt` and the sitemap;
 the default deny path follows `server.admin_path`. `server.seo.sitemap.max_urls`
 is between 1 and 50000 per sitemap file. `server.seo.sitemap.include_images`

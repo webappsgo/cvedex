@@ -75,7 +75,7 @@ Updating either trusted-proxy setting requires a server restart.
 | GET | `/api/v1/products/{product}?limit=20&cursor=0` | Paginated CVE IDs associated with a product across vendors |
 | GET | `/api/v1/cves/latest?limit=20` | Most recently published CVEs; limit is configurable from 1 to 100 |
 | GET | `/api/v1/kev` | KEV catalog entries in the dataset |
-| GET | `/api/v1/zone` | BIND-format zone snapshot download |
+| GET | `/api/v1/zone` | Binary BIND-format zone download (`application/dns`); JSON and text negotiation do not alter the file, and `/api/v1/zone.txt` returns 404 |
 | GET | `/api/v1/ds` | Current DNSSEC DS records; returns 503 until a signed zone is available |
 | GET | `/cli/binaries/{binary}` | Download a published CLI binary; authentication is optional unless configured |
 | GET | `/api/swagger` | Direct alias for the current version's OpenAPI document |
