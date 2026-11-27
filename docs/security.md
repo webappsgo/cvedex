@@ -16,8 +16,9 @@ limiting is always enabled. Read requests default to 120 per client per
 configured minute, writes to 10, health checks to 120, login attempts to 5 per
 15 minutes, and strict token/restore actions to 10 per 15 minutes. A 240 request
 burst ceiling is shared across endpoint classes per client identity. Anonymous
-traffic is keyed by the direct connection peer; valid operator-token requests
-use a token digest. Forwarded headers are not trusted. Limits return JSON with
+traffic is keyed by the normalized client IP; valid operator-token requests
+use a token digest. Forwarded client IPs are accepted only from configured
+trusted proxies. Limits return JSON with
 `429` and `Retry-After`. The current implementation keeps counters in memory,
 so they reset on restart; persistent counters and cache-backed coordination are
 not implemented yet. `HTTP_RATE_LIMIT_REQUESTS` and `HTTP_RATE_LIMIT_WINDOW`
@@ -44,7 +45,8 @@ each valid source retained on disk and hot-loaded independently. Unsafe IP
 prefixes and public-suffix wildcards are discarded during validation. Domain
 matching uses Origin or Referer and submitted email or URL fields; it does not
 use the request Host or reverse DNS. Blocked requests are logged without the
-matched submitted domain, then rejected with `403` by default. See
+matched submitted domain, then rejected with `403` by default. IP rules use the
+normalized client address resolved through explicitly trusted proxies. See
 [Configuration](configuration.md) for source settings and freshness behavior.
 
 First-run administrator pages use session and CSRF protections. Admin API

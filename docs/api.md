@@ -19,7 +19,10 @@ token and use these routes:
 
 The email settings and editable template catalogue are also restricted to the
 operator Bearer token. SMTP credentials are accepted only on writes and are
-never returned by reads:
+never returned by reads. The administrator settings API includes
+`trusted_proxy_additional` (an array of IPs, CIDRs, or DNS names) and
+`trusted_proxy_client_ip_header` (`auto` or a supported client-IP header).
+Updating either trusted-proxy setting requires a server restart.
 
 | Method | Path | Purpose |
 |---|---|---|

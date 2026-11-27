@@ -64,6 +64,27 @@ broad configured ranges are skipped with a warning. Administrators can manage
 entries at `/server/{admin_path}/security/allowlist` or through the authenticated
 API; changes are written to `server.yml` and take effect immediately.
 
+Reverse proxies belong under `server.trusted_proxies`. The server always trusts
+loopback, private, link-local, and the configured listener's `/24`; `additional`
+accepts proxy IPs, CIDRs, or DNS names. DNS names refresh
+every five minutes while retaining their last valid addresses on lookup failure.
+`client_ip_header` defaults to `auto`, which selects the first supported client
+IP header, or can pin one supported header. Forwarded client addresses are used
+only when the direct TCP peer is trusted. The normalized client address feeds
+allowlist, blocklist, rate-limit, GeoIP, session, and audit decisions; the TCP
+peer remains the basis for proxy trust checks. Trusted `X-Forwarded-Host` and
+protocol headers control request URLs; direct requests use only a valid Host
+from the configured domain list when one is set.
+
+```yaml
+server:
+  trusted_proxies:
+    additional:
+      - 198.51.100.0/24
+      - proxy.example.net
+    client_ip_header: X-Forwarded-For
+```
+
 IP and domain blocklists are configured under `server.security.blocklists`.
 The built-in `firehol_level1` IP list is always active when blocklists are
 enabled. `extra_sources` accepts entries with `id`, `type` (`ip` or `domain`),
@@ -75,9 +96,8 @@ error. IP entries overlapping private, loopback, link-local, shared, or
 IPv6 unique-local ranges are skipped. Domain lists match the request Origin (or Referer),
 submitted email domains, and URL fields in JSON or form bodies; they never
 match the server's Host header. Rejections return `403`; `action: drop` closes
-the connection where the HTTP protocol supports it. The current blocklist
-client uses the direct TCP peer address; trusted-proxy client-IP resolution is
-not implemented yet.
+the connection where the HTTP protocol supports it. Blocklist checks use the
+normalized client IP, including trusted-proxy resolution.
 
 ```yaml
 server:

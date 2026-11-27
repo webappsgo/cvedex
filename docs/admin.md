@@ -43,6 +43,10 @@ from this page. HTTP request limiting applies by endpoint class, but its full
 class settings are not yet editable in the panel; see [Security](security.md)
 for the current limits and controls.
 
+The settings page also configures trusted proxy IPs, CIDRs, DNS names, and the
+client-IP header. These values are validated and saved to `server.yml`; changes
+are marked for restart because the proxy resolver is initialized at startup.
+
 The security page at `/server/{admin_path}/security` displays the operator
 token masked. Regeneration requires the current administrator password,
 replaces the token in `secrets.yml`, immediately invalidates the old token,
