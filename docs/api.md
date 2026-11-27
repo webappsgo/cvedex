@@ -47,15 +47,18 @@ text; `/api/v1/server/healthz` returns JSON by default and
 identity in plain text.
 
 Guest theme and consent settings are editable at `/server/preferences` and
-available as JSON at `/api/v1/server/preferences` (GET and CSRF-protected
-PATCH). The JSON API does not grant cookie consent; the visitor must make that
-choice on the preferences page.
+available as JSON at `/api/v1/server/preferences` (GET and POST). API writes
+accept partial JSON or form updates and do not grant cookie consent; writes are
+ignored until the visitor accepts the Preferences category on the preferences
+page. Web form posts use CSRF protection.
 
 The OpenAPI document is served at `/api/v1/server/swagger` and its direct alias `/api/swagger`; its browser page is `/server/docs/swagger`.
 The GraphQL query endpoint is `/api/v1/server/graphql`, with `/api/graphql` as
 the direct alias for the current version. GET requests require a `query` URL
-parameter; POST requests accept a JSON object with a `query` field. The
-server-rendered query form is at `/server/docs/graphql`. GraphQL supports the
+parameter; POST requests accept a JSON object with a `query` field. GraphQL
+execution errors use HTTP 200 with the standard `data` and `errors` response;
+requests rejected before execution use the canonical API error shape and status.
+The browser query form is at `/server/docs/graphql`. GraphQL supports the
 read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
 `products`, `product`, `latest_cves`, `kev`, `dataset`, `ds`, and `zone`. Search,
 catalog, and reverse lookup queries accept bounded `limit` and `cursor`
