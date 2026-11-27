@@ -136,14 +136,12 @@ Docker with the `casjaysdev/go:latest` toolchain; do not install Go on the
 development machine.
 
 ```sh
-mkdir -p "${TMPDIR:-/tmp}/casapps"
-BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
-make local BINDIR="$BUILD_DIR" RELDIR="$BUILD_DIR/releases"
+make build
 make test
 ```
 
-Use a new project-scoped temporary directory for each build. Build outputs are
-written there so Makefile cleanup remains scoped to that temporary directory.
+The debug server and CLI binaries are written under `binaries/`; `make clean`
+removes generated binaries and release artifacts.
 See [Development](docs/development.md) for the integration tiers and test
 environment details. Do not commit generated binaries, datasets, or runtime
 data.

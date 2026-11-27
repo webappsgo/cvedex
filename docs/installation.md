@@ -17,13 +17,11 @@ The Compose manifests publish HTTP plus DNS over both UDP and TCP. Persistent `/
 All Go builds use the project's `casjaysdev/go:latest` container toolchain. From the repository root:
 
 ```sh
-mkdir -p "${TMPDIR:-/tmp}/casapps"
-BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
-make local BINDIR="$BUILD_DIR" RELDIR="$BUILD_DIR/releases"
+make build
 ```
 
-The generated server binary is `$BUILD_DIR/cvedex`; the client is
-`$BUILD_DIR/cvedex-cli`.
+The generated server binary is `binaries/cvedex`; the client is
+`binaries/cvedex-cli`.
 
 ## Binary and Linux service managers
 

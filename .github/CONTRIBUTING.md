@@ -9,7 +9,9 @@ dependencies in `docs/requirements.txt`.
 ```sh
 make build
 make test
-make docs
+docker run --rm --name "cvedex-docs-$(tr -dc 'a-z0-9' </dev/urandom | head -c8)" \
+  -v "$PWD:/docs" -w /docs squidfunk/mkdocs-material:latest \
+  build --strict --site-dir /tmp/cvedex-site
 ```
 
 Open a focused pull request against `main`. Include the reason for the change,
