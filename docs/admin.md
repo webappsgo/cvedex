@@ -100,13 +100,15 @@ runs also use POST forms. Critical tasks cannot be disabled. The API routes
 are listed above and use the operator Bearer token; browser controls use the
 authenticated session and CSRF tokens.
 
-The scheduler registers `cve_update`, `session_cleanup`, `token_cleanup`,
+The scheduler registers `cve_update`, `geoip_update`, `session_cleanup`, `token_cleanup`,
 `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
 when the backup runner is available, Tor health when Tor is installed, and I2P
 health when I2P is enabled. `token_cleanup` removes revoked or expired
 administrator tokens and used or expired password-reset and email-verification
-tokens. TLS renewal, GeoIP and blocklist updates, security cleanup, keyserver
-retries, log rotation, and cluster heartbeats do not have task runners yet.
+tokens. GeoIP downloads run at startup when the local database is stale, then
+weekly; the admin page is `/server/{admin_path}/network/geoip`. TLS renewal,
+blocklist updates, security cleanup, keyserver retries, log rotation, and
+cluster heartbeats do not have task runners yet.
 Tor and I2P processes are managed separately from these scheduler callbacks;
 see [Integrations](integrations.md#tor-and-i2p-overlays).
 

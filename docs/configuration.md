@@ -51,6 +51,26 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
 | `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
+GeoIP settings are YAML-only under `server.geoip`. The database is downloaded
+from `sapics/ip-location-db` on first run and updated by the built-in scheduler.
+Lookups fail open when the data is missing, stale, or unknown; private and
+loopback addresses are never looked up. Country rules only deny requests and
+never replace authentication or authorization.
+
+```yaml
+server:
+  geoip:
+    enabled: true
+    deny_countries: []
+    allow_countries: []
+    presets: {}
+```
+
+`allow_countries` takes precedence when both country lists are populated.
+Presets are operator-authored named lists and are never applied automatically.
+The authenticated page is `/server/{admin_path}/network/geoip`; changes are
+saved to `server.yml` and require a service restart.
+
 The YAML file uses the same namespaced keys, for example:
 
 ```yaml

@@ -24,6 +24,14 @@ not implemented yet. `HTTP_RATE_LIMIT_REQUESTS` and `HTTP_RATE_LIMIT_WINDOW`
 control the general client read limit and window; other class defaults are
 currently fixed.
 
+GeoIP is a deny-only risk signal. It runs after HTTP rate limiting and before
+route authentication, so blocked traffic consumes rate-limit capacity. Missing
+or stale databases, failed lookups, unknown countries, and private/internal
+addresses fail open to the rest of the security pipeline. GeoIP must never be
+used as authentication or as a substitute for authorization. Operators can
+configure country policies and named presets at
+`/server/{admin_path}/network/geoip`.
+
 First-run administrator pages use session and CSRF protections. Admin API
 routes require the operator token in an `Authorization: Bearer` header and do
 not accept session cookies. The settings panel controls refresh, redirect,

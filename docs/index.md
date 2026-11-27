@@ -30,7 +30,9 @@ curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/C
 DNS UDP and HTTP rate limiting are enabled by default. First-run admin
 authentication and the settings panel are available. DNSSEC signing, ACL
 restricted transfers, and NOTIFY are supported; see [Security](security.md)
-and [Administration](admin.md) for operator guidance.
+and [Administration](admin.md) for operator guidance. Optional country-based
+GeoIP blocking uses locally cached ip-location-db data and always fails open
+when lookup data is unavailable.
 
 ## Documentation
 

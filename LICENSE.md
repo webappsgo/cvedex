@@ -39,6 +39,13 @@ This software includes the following third-party libraries:
 
 Full license texts available at: https://spdx.org/licenses/
 
+## Embedded Data Sources
+
+| Dataset | Source | License | Required notice |
+|---------|--------|---------|-----------------|
+| IP-to-ASN and country databases | [sapics/ip-location-db](https://github.com/sapics/ip-location-db), based on iptoasn.com data | PDDL | None required |
+| City databases | [DB-IP](https://db-ip.com/) | CC BY 4.0 | [IP Geolocation by DB-IP](https://db-ip.com/) |
+
 ### modernc.org/sqlite (BSD-3-Clause)
 
 Copyright (c) 2017 The Sqlite Authors. All rights reserved.
