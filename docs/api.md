@@ -74,6 +74,16 @@ page. Errors use the requested JSON, text, or HTML format as well. Text
 browsers that advertise HTML receive server-rendered HTML and do not need
 JavaScript for navigation or forms.
 
+## Search discovery
+
+`/robots.txt` publishes the crawler allow rules and the request-specific
+`/sitemap.xml` URL. The sitemap contains public HTML pages and published CVE
+permalinks; it excludes API routes, administration pages, and the contact page.
+Large datasets use a sitemap index with numbered sitemap files. `/feed.xml`
+serves Atom 1.0 and `/rss.xml` serves RSS 2.0 with the same recent published
+CVE records. Feed responses support `GET` and `HEAD`, use a five-minute public
+cache, and provide `ETag` and `Last-Modified` validators.
+
 The frontend health page at `/server/healthz` supports HTML, JSON, and plain
 text; `/api/v1/server/healthz` returns JSON by default and
 `/api/v1/server/healthz.txt` returns plain text. `/api/v1.txt` returns the API
