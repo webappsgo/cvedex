@@ -110,7 +110,11 @@ cache, and provide `ETag` and `Last-Modified` validators.
 The frontend health page at `/server/healthz` supports HTML, JSON, and plain
 text; `/api/v1/server/healthz` returns JSON by default and
 `/api/v1/server/healthz.txt` returns plain text. `/api/v1.txt` returns the API
-identity in plain text.
+identity in plain text. The `checks` object keeps `database`, `cache`, `disk`,
+and `scheduler` first; enabled overlays follow, then dynamically keyed dataset
+checks such as `geoip_country`, `blocklist_<id>`, and `data_cve_nvd`. Each value
+is only `ok`, `degraded`, or `error`; health responses do not expose local paths
+or dependency diagnostics.
 
 Guest theme and consent settings are editable at `/server/preferences` and
 available as JSON at `/api/v1/server/preferences` (GET and POST). API writes

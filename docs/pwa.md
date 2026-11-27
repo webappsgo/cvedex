@@ -1,14 +1,22 @@
 # Progressive Web App
 
 cvedex exposes an installable web app manifest, icons, iOS startup images, and a
-service worker. The worker caches versioned static assets and localized offline
-messages. It checks navigation requests against the server first and displays a
-translated offline page when the server cannot be reached. It does not cache
-HTML pages because their rendered language and theme depend on visitor settings.
+service worker. The worker caches versioned static assets, localized offline
+messages, and server-approved public informational pages. It checks navigation
+requests against the server first and displays a translated offline page when
+the server cannot be reached and no matching public page copy is available.
+
+Public page copies are keyed by the URL and the rendered theme, language, cookie
+consent, and CCPA preference. The server marks only static informational pages
+as eligible, and only when the request has no authentication or unknown
+personalization cookie. Responses remain `no-store` for HTTP caches. Contact,
+security-report, preference, admin, health, API, and other form or data pages
+are not stored for offline use. If a response is not explicitly approved for
+offline use, the worker removes older copies for that URL.
 
 The service worker does not intercept API requests or queue form submissions.
-Contact, security, and preference forms require a live connection and must be
-submitted again after connectivity returns.
+Forms require a live connection and must be submitted again after connectivity
+returns.
 
 On supported browsers, use the browser's install control to add cvedex to the
 home screen or desktop. Safari on iOS does not expose the browser install prompt;

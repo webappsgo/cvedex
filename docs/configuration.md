@@ -59,8 +59,11 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
 | `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
-The generated discovery resources are controlled through YAML-only `web` and
-`server.seo` settings. `web.security.report_url` must be an HTTPS URL without
+Branding is read from `{CONFIG_DIR}/yaml.d/branding.yml`; its `server.branding.title`,
+`server.branding.tagline`, and `server.branding.description` values feed the
+health response and generated `llms.txt`. The file and its directory are
+restricted to the configuration owner. The generated discovery resources are
+controlled through YAML-only `web` and `server.seo` settings. `web.security.report_url` must be an HTTPS URL without
 credentials, query, or fragment. `web.llms.include_endpoints` controls route
 listing and defaults to `true`; `web.llms.include_schemas` adds request/response
 schema names and defaults to `false`. At most ten custom llms sections are
@@ -73,6 +76,28 @@ the default deny path follows `server.admin_path`. `server.seo.sitemap.max_urls`
 is between 1 and 50000 per sitemap file. `server.seo.sitemap.include_images`
 defaults to `false`. `server.seo.feed.max_items` is between 1 and 200, and
 `server.seo.feed.title` overrides the default feed title.
+
+Maintenance recovery settings load from
+`{CONFIG_DIR}/yaml.d/maintenance.yml`. Self-healing retries default to every
+30 seconds and continue indefinitely when `max_attempts` is zero. A positive
+value caps failed attempts and keeps the server in maintenance mode until a
+service restart. Disk cleanup defaults to a 90% threshold and seven-day log
+retention; backup retention remains controlled only by
+`server.backup.retention`. Entry and recovery notifications default to enabled.
+
+```yaml
+server:
+  maintenance:
+    self_healing:
+      retry_interval: 30s
+      max_attempts: 0
+    cleanup:
+      disk_threshold: 90
+      log_retention_days: 7
+    notify:
+      on_enter: true
+      on_exit: true
+```
 
 GeoIP settings live under `server.geoip` and can be edited in the authenticated
 `/server/{admin_path}/network/geoip` page or through the operator API. Settings
