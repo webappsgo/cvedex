@@ -7,6 +7,7 @@
 - HTTP security headers include a same-origin Content Security Policy, frame denial, content-type sniffing protection, and a restrictive referrer policy.
 - CVE data API routes are read-only. The preferences endpoint accepts guest preference updates; administrator API routes require an operator Bearer token, while browser forms use an authenticated administrator session.
 - `/server/healthz` and `/api/v1/server/healthz` expose service health without filesystem paths or secrets.
+- `/.well-known/security.txt` and `/.well-known/llms.txt` are public plain-text discovery resources. `/llms.txt` is an alias; the well-known directory itself and unknown well-known paths return 404.
 
 ## Operational controls
 
@@ -60,4 +61,10 @@ DNSSEC keys.
 
 ## Reporting
 
-Use GitHub's private vulnerability reporting for the `webappsgo/cvedex` repository when it is available. Avoid publishing exploit details in public issues.
+For a vulnerability in the cvedex source or release, use [GitHub private vulnerability reporting](https://github.com/webappsgo/cvedex/security/advisories/new). Do not publish exploit details in public issues.
+
+The generated [`security.txt`](https://github.com/webappsgo/cvedex/blob/main/docs/security.md) lists that private reporting channel and the request host's `/server/security/policy` URL. Set `web.security.report_url` or `SECURITY_REPORT_URL` to an HTTPS reporting URL for a self-hosted distribution. The operator may replace the generated text by placing a regular file at `{DATA_DIR}/web/.well-known/security.txt`; symlinked, oversized, or unreadable overrides are ignored.
+
+`/server/security` provides the instance overview and `/server/contact` provides general contact. The general form is not a vulnerability-submission channel; use the private GitHub report link for instance or product vulnerabilities. No user-submitted report content is placed in `llms.txt`.
+
+`llms.txt` is generated from the public API route metadata and request-specific base URL. It describes anonymous read-only data access and identifies operator-only MCP/admin authentication without listing protected administrator routes. An operator can replace its body at `{DATA_DIR}/web/.well-known/llms.txt`.

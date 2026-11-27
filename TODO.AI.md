@@ -5,6 +5,7 @@
 - [ ] Finish server page and API route coverage against IDEA.md and AI.md PARTS 13, 14, 16, and 17; ensure every public data endpoint has a working server-rendered page and page errors follow the shared negotiation and accessibility rules.
 - [ ] Verify and finish the existing GraphQL API and GraphiQL page in `src/graphql/`; keep query fields synchronized with the read API contract and confirm versioned and unversioned routes.
 - [ ] Finish admin authentication, settings, security, status, and audit-log coverage required by PART 17; expose every applicable setting in cvedex's admin UI with validation, help, defaults, and restart feedback.
+- [ ] Implement required `/.well-known/security.txt` and `/.well-known/llms.txt` endpoints, the security contact/policy flows and per-request URL resolution required by PARTS 8, 11, 16, and 17; preserve operator override and public error/accessibility rules.
 
 ## High (P1)
 
@@ -12,6 +13,7 @@
 - [ ] Complete the existing `/server/{admin_path}/metrics` settings and token-management page from PART 21; audit scheduler/database metric families as those subsystems are implemented.
 - [ ] Complete the always-on HTTP sliding-window limiter: configurable endpoint classes, per-token identity for every valid token type, failed-auth lockout, strict-action owner limits, persisted hot counters, cache backend/fallback, and admin controls. Read/write/health/login/strict limits, operator-token grouping, and the canonical 429 response are implemented but remain unverified against full PART 12 coverage.
 - [ ] Implement required scheduler tasks and admin controls from PART 19, preserving cvedex's daily refresh behavior.
+- [ ] Add the mandatory cache subsystem from AI.md's Cache Configuration section: none/memory/Valkey/Redis modes, URL or host credentials, TLS, pools, prefix, TTL and cluster nodes; connect sessions, distributed rate limits, health, metrics, heartbeat, Pub/Sub and locks; expose settings in admin UI and docs.
 - [ ] Refactor SQLite storage to separate serialized write and query-only read handles, add bounded immediate transactions with retry/backoff and shutdown checkpointing, route every database mutation through the write transaction helper, and add the required concurrent reader/writer integration test from PART 10.
 - [ ] Implement mandatory backup scheduling, retention, verification, and atomic restore behavior from PART 22.
 - [ ] Implement the mandatory TLS/certificate lifecycle surfaces from PART 15 where supported by the server deployment model.

@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/github/license/webappsgo/cvedex)](LICENSE.md)
 [![Release](https://img.shields.io/github/v/release/webappsgo/cvedex)](https://github.com/webappsgo/cvedex/releases)
 [![CI](https://github.com/webappsgo/cvedex/actions/workflows/ci.yml/badge.svg)](https://github.com/webappsgo/cvedex/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/casapps-cvedex/badge/?version=latest)](https://casapps-cvedex.readthedocs.io/)
 
 ## About
 

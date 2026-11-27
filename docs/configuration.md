@@ -19,6 +19,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `DNS_TRANSFER_ACL` | Loopback only when unset | IP addresses or CIDRs allowed to request TCP AXFR/IXFR |
 | `DNS_NOTIFY_TARGETS` | Empty | DNS secondary hostnames or `hostname:port` targets notified after a successful build |
 | `REDIRECT_URL_TEMPLATE` | `https://www.cve.org/CVERecord?id={cve_id}` | Shared CVE redirect and DNS URI target; placeholders are `{year}`, `{sequence}`, and `{cve_id}` |
+| `SECURITY_REPORT_URL` (`web.security.report_url`) | `https://github.com/webappsgo/cvedex/security/advisories/new` | HTTPS primary vulnerability-reporting URL published by `/.well-known/security.txt` |
 | `HTTP_RATE_LIMIT_REQUESTS` | `120` | Read requests allowed per anonymous client or valid operator token in the general HTTP window |
 | `HTTP_RATE_LIMIT_WINDOW` | `1m` | Read, write, health, and global-burst rate-limit window; minimum `1s` |
 | `METRICS_ENABLED` | `true` | Enable authenticated Prometheus, Grafana, and Loki metrics services |
