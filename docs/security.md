@@ -63,8 +63,8 @@ DNSSEC keys.
 
 For a vulnerability in the cvedex source or release, use [GitHub private vulnerability reporting](https://github.com/webappsgo/cvedex/security/advisories/new). Do not publish exploit details in public issues.
 
-The generated `/.well-known/security.txt` lists that private reporting channel and the request host's `/server/security/policy` URL. Set `web.security.report_url` or `SECURITY_REPORT_URL` to an HTTPS reporting URL for a self-hosted distribution. The operator may replace the generated text by placing a regular file at `{DATA_DIR}/web/.well-known/security.txt`; symlinked, oversized, or unreadable overrides are ignored.
+The generated `/.well-known/security.txt` lists the private reporting channel, the instance form when enabled, the configured security contact email, and the request host's policy URL. Set `web.security.report_url` or `SECURITY_REPORT_URL` to an HTTPS reporting URL for a self-hosted distribution. The operator may replace the generated text by placing a regular file at `{DATA_DIR}/web/.well-known/security.txt`; symlinked, oversized, or unreadable overrides are ignored.
 
-`/server/security` provides the instance overview and `/server/contact` provides general contact information. The contact page does not accept vulnerability submissions; use the private GitHub report link for instance or product vulnerabilities. No user-submitted report content is placed in `llms.txt`.
+`/server/security` provides the instance reporting overview. Its rotating `security_id` link opens the security-report form at `/server/contact`; without a valid id, that form offers abuse, DMCA, and privacy reports only. It is not a support or general-contact form. No user-submitted report content is placed in `llms.txt`.
 
 `llms.txt` is generated from the public API route metadata and request-specific base URL. It describes anonymous read-only data access and identifies operator-only MCP/admin authentication without listing protected administrator routes. An operator can replace its body at `{DATA_DIR}/web/.well-known/llms.txt`.

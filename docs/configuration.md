@@ -259,6 +259,28 @@ are limited to 80 Unicode characters and Markdown content to 4096. Invalid
 entries are skipped with a warning. Generated links permit HTTPS and relative
 targets; HTML tags are escaped. These settings apply on restart.
 
+The report form is controlled by `server.pages.contact.enabled` (enabled by
+default) and currently uses the built-in arithmetic CAPTCHA. Contact role
+addresses are configured under `server.contact` and the security report
+encryption key is generated in `secrets.yml` as
+`server.security.encryption_key`; keep that file private and retain it with the
+database backups. Losing the key makes stored security reports unreadable.
+
+```yaml
+server:
+  pages:
+    contact:
+      enabled: true
+      captcha: simple
+  contact:
+    security:
+      email: security@example.org
+    abuse:
+      email: abuse@example.org
+    general:
+      email: admin@example.org
+```
+
 The TLS listener currently supports a manually supplied certificate and key
 through YAML (`server.ssl.enabled`, `server.ssl.cert`, `server.ssl.key`, and
 `server.ssl.min_version`). The certificate and key must both be configured;

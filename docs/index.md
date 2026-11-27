@@ -42,6 +42,7 @@ when lookup data is unavailable.
 - [HTTP API](api.md)
 - [CLI reference](cli.md)
 - [Administration](admin.md)
+- [Progressive Web App](pwa.md)
 - [Security](security.md)
 - [Integrations](integrations.md)
 - [Self-hosting](self-hosting.md)

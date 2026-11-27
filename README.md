@@ -22,6 +22,7 @@ gateway. The default zone is `cve.`; deployments can choose another zone.
 - Managed Tor and I2P services with health reporting and operator controls
 - HTTPS-updated IP and domain blocklists with per-source last-good data and health checks
 - Guest theme, language, consent, and cross-device preference controls
+- Installable progressive web app with versioned static assets and a translated offline fallback
 - `cvedex-cli` for CVE lookup, search, local dataset generation, data synchronization, and zone downloads
 - Six web interface languages: English, Spanish, French, German, Italian, and Arabic; Arabic uses right-to-left layout
 
