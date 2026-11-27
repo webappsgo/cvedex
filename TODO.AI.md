@@ -8,7 +8,7 @@
 - [ ] Implement required `/.well-known/security.txt` and `/.well-known/llms.txt` endpoints, the security contact/policy flows and per-request URL resolution required by PARTS 8, 11, 16, and 17; preserve operator override and public error/accessibility rules.
 - [ ] Complete the contact and coordinated security-report pipeline from PARTS 11 and 16: configured CAPTCHA providers and no-JS fallbacks, translated field labels, canonical encryption-key use, researcher acknowledgment/status token, report status pages and authenticated admin workflow, PGP handling, retention, and contact configuration/admin controls.
 - [ ] Complete the health contract in PART 10: report maintenance and self-healing details, use configurable project branding, expose the dynamic dependency checks, and verify every JSON/text status variant.
-- [ ] Add the required browser viewport conformance checks for essential toggles at 320, 768, and 1280 pixels.
+- [ ] Implement the on-demand headless Chromium E2E suite from AI.md PART 28: three required tiers (SSR, JavaScript disabled, and full browser), hermetic fixture data and zero external network, full internal crawl, every cvedex feature from IDEA.md, admin login, themes/language, forms/CSRF, 404/500, static assets, console/network checks, responsive/layout/accessibility matrix, temporary failure artifacts, and a Docker-wrapped `tests/e2e.sh` entry point. This is not part of `make test` or the commit gate.
 
 ## High (P1)
 
