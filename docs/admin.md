@@ -100,15 +100,15 @@ runs also use POST forms. Critical tasks cannot be disabled. The API routes
 are listed above and use the operator Bearer token; browser controls use the
 authenticated session and CSRF tokens.
 
-The current scheduler registers `cve_update`, `session_cleanup`,
-`token_cleanup`, `healthcheck_self`, and daily/hourly backups when the backup
-runner is available. `token_cleanup` removes revoked or expired administrator
-tokens and used or expired password-reset and email-verification tokens. The
-catalogue still lacks required runners for TLS renewal, GeoIP, blocklists,
-security cleanup, keyserver retries, update checks, Tor and I2P health checks,
-and cluster heartbeats; those tasks are not available to run yet. Tor and I2P
-processes are managed separately from these scheduler callbacks; see
-[Integrations](integrations.md#tor-and-i2p-overlays).
+The scheduler registers `cve_update`, `session_cleanup`, `token_cleanup`,
+`healthcheck_self`, and `update_check`. It also registers daily/hourly backups
+when the backup runner is available, Tor health when Tor is installed, and I2P
+health when I2P is enabled. `token_cleanup` removes revoked or expired
+administrator tokens and used or expired password-reset and email-verification
+tokens. TLS renewal, GeoIP and blocklist updates, security cleanup, keyserver
+retries, log rotation, and cluster heartbeats do not have task runners yet.
+Tor and I2P processes are managed separately from these scheduler callbacks;
+see [Integrations](integrations.md#tor-and-i2p-overlays).
 
 ## Audit log
 
@@ -164,8 +164,13 @@ to verify or restore encrypted archives.
 ## Updates
 
 The server update command can inspect and install releases from the `stable`,
-`beta`, or `devel` channel. Installation requires the privileges needed to
-replace the server binary; the service manager performs the restart.
+`beta`, or `devel` channel. The scheduled `update_check` honors
+`server.update.defer_days`; the manual command ignores that delay. With
+`server.update.auto_install: true`, a privileged Linux `--service-runtime`
+stages a verified release and exits with status 75 so a supervising service
+can restart it as root. The root startup phase fetches the release checksum
+again before replacing the binary. Other runs notify administrators and leave
+installation to an explicit elevated command.
 
 ```sh
 cvedex --update check

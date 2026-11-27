@@ -193,3 +193,15 @@ the scheduler timezone. It retries failures when `retry_on_fail` is enabled,
 using exponential delays beginning at `retry_delay` for up to three retries.
 `SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to
 mirror a data release from another trusted distribution endpoint.
+
+## Server updates
+
+`server.update.branch` selects the cumulative `stable`, `beta`, or `devel`
+release channel. `server.update.defer_days` (0–365) delays only scheduled
+stable and beta updates; the manual `--update check` and `--update yes`
+commands ignore the delay. `server.update.auto_install` defaults to `false`.
+When enabled, only a privileged Linux service started with `--service-runtime`
+stages a scheduled release and exits with status 75 for its supervisor to
+restart. The privileged startup phase re-fetches the official checksum before
+replacing the installed binary. Normal-user and Windows service runs remain
+notify-only.
