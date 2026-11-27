@@ -223,7 +223,7 @@ return `400`, and an unavailable dataset returns `503`.
 | GET | `/api/v1/ds` | None | Retrieve the active DNSSEC DS record; returns `503` when unavailable. |
 | GET | `/api/v1/zone` | None | Download the active BIND-format zone; returns a zone file. |
 | GET | `/api/v1/server/{public_page}` | None | Read a template-defined public information page as structured page data. |
-| GET/PATCH | `/api/v1/server/preferences` | None | Read or update the guest's theme/consent preferences; PATCH accepts JSON and requires a CSRF token. |
+| GET/POST | `/api/v1/server/preferences` | None | Read or update the guest's theme/consent preferences; POST accepts JSON and requires a CSRF token. |
 | GET/PATCH | `/api/v1/server/{admin_path}/settings` | Operator bearer token | Read or update server settings; PATCH accepts validated JSON. |
 | POST | `/api/v1/server/{admin_path}/security/dnssec/rotate` | Operator bearer token | Rotate DNSSEC keys; returns operation status without disclosing key material. |
 

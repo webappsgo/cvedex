@@ -17,7 +17,10 @@ gateway. The default zone is `cve.`; deployments can choose another zone.
 - HTTP redirects for valid CVE hostnames and server-rendered pages for CVE details, search, catalogs, and service information
 - JSON APIs for CVE details and search, vendor and product lookups, KEV data, and BIND-format zone downloads
 - Read-only GraphQL and authenticated MCP JSON-RPC endpoints
+- Authenticated administration for settings, service status, DNSSEC, audit logs, scheduled tasks, metrics credentials, backups, and network overlays
 - Authenticated Prometheus metrics, Grafana dashboard export, and a bounded Loki-compatible log stream
+- Managed Tor and I2P services with health reporting and operator controls
+- Guest theme, language, consent, and cross-device preference controls
 - `cvedex-cli` for CVE lookup, search, local dataset generation, data synchronization, and zone downloads
 - Six web interface languages: English, Spanish, French, German, Italian, and Arabic; Arabic uses right-to-left layout
 
@@ -80,7 +83,8 @@ cvedex-cli --server https://YOUR_SERVER search "xz utils" --year 2024
 ```
 
 See the [CLI reference](docs/cli.md) for configuration, output formats, and
-data-maintenance commands.
+data-maintenance commands. Translation contributors can follow the
+[translation guide](docs/translating.md).
 
 ## Configuration
 
