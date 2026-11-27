@@ -57,6 +57,31 @@ Lookups fail open when the data is missing, stale, or unknown; private and
 loopback addresses are never looked up. Country rules only deny requests and
 never replace authentication or authorization.
 
+IP and domain blocklists are configured under `server.security.blocklists`.
+The built-in `firehol_level1` IP list is always active when blocklists are
+enabled. `extra_sources` accepts entries with `id`, `type` (`ip` or `domain`),
+an HTTPS `url`, and optional `enabled`. Lists refresh at startup and daily;
+each source is stored separately under `{DATA_DIR}/security/blocklists/` and
+retains its last valid copy when an update fails. Files older than 72 hours
+report a degraded health check. A source with no valid local copy reports an
+error. IP entries overlapping private, loopback, link-local, shared, or
+trusted ranges are skipped. Domain lists match the request Origin (or Referer),
+submitted email domains, and URL fields in JSON or form bodies; they never
+match the server's Host header. Rejections return `403`; `action: drop` closes
+the connection where the HTTP protocol supports it.
+
+```yaml
+server:
+  security:
+    blocklists:
+      enabled: true
+      auto_update: true
+      action: reject
+      reject_message: ""
+      log_blocked: true
+      extra_sources: []
+```
+
 ```yaml
 server:
   geoip:

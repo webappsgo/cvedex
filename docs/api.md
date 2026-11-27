@@ -27,7 +27,7 @@ never returned by reads:
 | POST | `/api/v1/server/{admin_path}/email/test` | Send a real test message using sample template data |
 | GET | `/api/v1/server/{admin_path}/email/templates` | List available email templates |
 | GET, PUT | `/api/v1/server/{admin_path}/email/templates/{name}` | Read or validate and save a template |
-| POST | `/api/v1/server/{admin_path}/email/templates/{name}/reset` | Remove a custom override and restore the embedded template |
+| POST | `/api/v1/server/{admin_path}/email/templates/{name}/reset` | Remove a custom override and restore the embedded template with `{"confirm":true}` |
 | POST | `/api/v1/server/{admin_path}/email/templates/{name}/preview` | Render supplied template data without sending email |
 
 | Method | Path | Behavior |

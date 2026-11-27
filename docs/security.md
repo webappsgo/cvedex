@@ -32,6 +32,15 @@ used as authentication or as a substitute for authorization. Operators can
 configure country policies and named presets at
 `/server/{admin_path}/network/geoip`.
 
+IP and domain blocklists run before HTTP rate limiting and GeoIP. The built-in
+FireHOL level-one IP list and enabled operator sources update over HTTPS, with
+each valid source retained on disk and hot-loaded independently. Unsafe IP
+prefixes and public-suffix wildcards are discarded during validation. Domain
+matching uses Origin or Referer and submitted email or URL fields; it does not
+use the request Host or reverse DNS. Blocked requests are logged without the
+matched submitted domain, then rejected with `403` by default. See
+[Configuration](configuration.md) for source settings and freshness behavior.
+
 First-run administrator pages use session and CSRF protections. Admin API
 routes require the operator token in an `Authorization: Bearer` header and do
 not accept session cookies. The settings panel controls refresh, redirect,

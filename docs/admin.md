@@ -110,18 +110,20 @@ runs also use POST forms. Critical tasks cannot be disabled. The API routes
 are listed above and use the operator Bearer token; browser controls use the
 authenticated session and CSRF tokens.
 
-The scheduler registers `cve_update`, `geoip_update`, `session_cleanup`, `token_cleanup`,
-`security_cleanup`, `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
+The scheduler registers `cve_update`, `geoip_update`, `blocklist_update`, `session_cleanup`,
+`token_cleanup`, `log_rotation`, `security_cleanup`, `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
 when the backup runner is available, Tor health when Tor is installed, and I2P
 health when I2P is enabled. `token_cleanup` removes revoked or expired
 administrator tokens and used or expired password-reset and email-verification
 tokens. GeoIP downloads run at startup when the local database is stale, then
 weekly; the admin page is `/server/{admin_path}/network/geoip`.
-`security_cleanup` currently prunes administrator notifications only. TLS
-renewal, blocklist updates, security-report/key retirement cleanup, keyserver
-retries, log rotation, and cluster heartbeats are not implemented yet; their
-configuration entries do not imply that work runs. These limitations are
-tracked in the project implementation backlog.
+`security_cleanup` currently prunes administrator notifications only. `log_rotation`
+applies the configured audit-log rotation and retention policy even when no new
+audit event arrives. TLS renewal, security-report/key retirement cleanup,
+keyserver retries, and cluster heartbeats are not implemented yet; their
+configuration entries do not imply that work runs. Blocklist behavior is
+configured in `server.yml`; see [Configuration](configuration.md#).
+These remaining limitations are tracked in the project implementation backlog.
 Tor and I2P processes are managed separately from these scheduler callbacks;
 see [Integrations](integrations.md#tor-and-i2p-overlays).
 
