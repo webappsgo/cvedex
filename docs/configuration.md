@@ -52,12 +52,17 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
 | `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
-The generated discovery resources are controlled through YAML-only `web`
-settings. `web.security.report_url` must be an HTTPS URL without credentials,
-query, or fragment. `web.llms.include_endpoints` controls route listing and
-defaults to `true`; `web.llms.include_schemas` adds request/response schema names
-and defaults to `false`. At most ten custom llms sections are accepted; invalid
-sections are skipped with a warning.
+The generated discovery resources are controlled through YAML-only `web` and
+`server.seo` settings. `web.security.report_url` must be an HTTPS URL without
+credentials, query, or fragment. `web.llms.include_endpoints` controls route
+listing and defaults to `true`; `web.llms.include_schemas` adds request/response
+schema names and defaults to `false`. At most ten custom llms sections are
+accepted; invalid sections are skipped with a warning. `web.robots.allow` and
+`web.robots.deny` are absolute path lists used by `/robots.txt` and the sitemap;
+the default deny path follows `server.admin_path`. `server.seo.sitemap.max_urls`
+is between 1 and 50000 per sitemap file. `server.seo.sitemap.include_images`
+defaults to `false`. `server.seo.feed.max_items` is between 1 and 200, and
+`server.seo.feed.title` overrides the default feed title.
 
 GeoIP settings are YAML-only under `server.geoip`. The database is downloaded
 from `sapics/ip-location-db` on first run and updated by the built-in scheduler.
@@ -222,10 +227,21 @@ server:
 web:
   security:
     report_url: https://github.com/webappsgo/cvedex/security/advisories/new
+  robots:
+    allow: ["/", "/api"]
+    deny: ["/server/administration"]
   llms:
     include_endpoints: true
     include_schemas: false
     custom_sections: []
+server:
+  seo:
+    sitemap:
+      max_urls: 50000
+      include_images: false
+    feed:
+      max_items: 50
+      title: ""
 ```
 
 `web.llms.custom_sections` accepts up to ten `{title, content}` entries. Titles
