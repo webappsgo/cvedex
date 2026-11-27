@@ -16,7 +16,8 @@ rate-limited. Setup, login, settings, and other state-changing browser forms
 use CSRF tokens.
 
 The administrator dashboard shows active administrator names and links to
-status, settings, metrics, security, backup, and audit-log pages. Active
+status, settings, email, GeoIP, notifications, updates, metrics, security,
+backup, scheduler, and audit-log pages. Active
 session addresses, durations, activity timestamps, and browser details are
 not shown.
 
@@ -92,7 +93,23 @@ cookie does not authenticate API requests. The implemented JSON routes are:
 | Method | Path | Purpose |
 |---|---|---|
 | GET, PATCH | `/api/v1/server/{admin_path}/settings` | Read or update validated server settings |
+| GET | `/api/v1/server/{admin_path}` | Read the current server settings |
 | GET | `/api/v1/server/{admin_path}/status` | Read server status and restart information |
+| GET, PATCH | `/api/v1/server/{admin_path}/email` | Read sanitized email settings or update relay settings and event preferences |
+| POST | `/api/v1/server/{admin_path}/email/test` | Send a test email |
+| GET | `/api/v1/server/{admin_path}/email/templates` | List email templates |
+| GET, PUT | `/api/v1/server/{admin_path}/email/templates/{name}` | Read or update a template |
+| POST | `/api/v1/server/{admin_path}/email/templates/{name}/reset` | Restore an embedded template |
+| POST | `/api/v1/server/{admin_path}/email/templates/{name}/preview` | Preview a rendered template |
+| GET, PATCH | `/api/v1/server/{admin_path}/network/geoip` | Read or update GeoIP policy |
+| GET | `/api/v1/server/{admin_path}/updates` | Read release update availability |
+| GET | `/api/v1/server/{admin_path}/notifications` | List administrator notifications |
+| POST | `/api/v1/server/{admin_path}/notifications/read-all` | Mark all notifications as read |
+| POST | `/api/v1/server/{admin_path}/notifications/{id}/read` | Mark one notification as read |
+| GET | `/api/v1/server/{admin_path}/security/allowlist` | List trusted IP and CIDR entries |
+| POST | `/api/v1/server/{admin_path}/security/allowlist` | Validate and add a trusted IP or CIDR entry |
+| GET | `/api/v1/server/{admin_path}/security/allowlist/check/{ip}` | Check whether an IP address is allowlisted |
+| DELETE | `/api/v1/server/{admin_path}/security/allowlist/{id}` | Remove one trusted entry |
 | GET | `/api/v1/server/{admin_path}/network/i2p` | Read I2P status and settings |
 | PATCH | `/api/v1/server/{admin_path}/network/i2p` | Validate, persist, and apply partial I2P settings |
 | POST | `/api/v1/server/{admin_path}/network/i2p/validate` | Validate candidate settings without applying them |

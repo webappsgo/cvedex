@@ -64,8 +64,11 @@ is between 1 and 50000 per sitemap file. `server.seo.sitemap.include_images`
 defaults to `false`. `server.seo.feed.max_items` is between 1 and 200, and
 `server.seo.feed.title` overrides the default feed title.
 
-GeoIP settings are YAML-only under `server.geoip`. The database is downloaded
-from `sapics/ip-location-db` on first run and updated by the built-in scheduler.
+GeoIP settings live under `server.geoip` and can be edited in the authenticated
+`/server/{admin_path}/network/geoip` page or through the operator API. Settings
+are persisted in `server.yml`; changing the policy requires a service restart.
+The database is downloaded from `sapics/ip-location-db` on first run when
+GeoIP is enabled and updated by the built-in scheduler.
 Lookups fail open when the data is missing, stale, or unknown; private and
 loopback addresses are never looked up. Country rules only deny requests and
 never replace authentication or authorization.
