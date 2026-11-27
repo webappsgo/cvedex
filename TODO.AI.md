@@ -12,6 +12,7 @@
 - [ ] Complete the existing `/server/{admin_path}/metrics` settings and token-management page from PART 21; audit scheduler/database metric families as those subsystems are implemented.
 - [ ] Complete the always-on HTTP sliding-window limiter: configurable endpoint classes, per-token identity for every valid token type, failed-auth lockout, strict-action owner limits, persisted hot counters, cache backend/fallback, and admin controls. Read/write/health/login/strict limits, operator-token grouping, and the canonical 429 response are implemented but remain unverified against full PART 12 coverage.
 - [ ] Implement required scheduler tasks and admin controls from PART 19, preserving cvedex's daily refresh behavior.
+- [ ] Refactor SQLite storage to separate serialized write and query-only read handles, add bounded immediate transactions with retry/backoff and shutdown checkpointing, route every database mutation through the write transaction helper, and add the required concurrent reader/writer integration test from PART 10.
 - [ ] Implement mandatory backup scheduling, retention, verification, and atomic restore behavior from PART 22.
 - [ ] Implement the mandatory TLS/certificate lifecycle surfaces from PART 15 where supported by the server deployment model.
 - [ ] Complete the required client experience from PART 33, including TUI, shared theme, all API operations, shell completions, config, and failover discovery.
