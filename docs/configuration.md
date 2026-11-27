@@ -38,6 +38,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
 | `I2P_ENABLED` | `false` on hosts; `true` in containers | I2P runtime setting; process/listener integration is not currently available |
 | `SECURE_COOKIES` | `false` | Require Secure on admin session cookies |
+| `PRIVACY_DATA_SOLD` | `false` | Set `server.privacy.data.sold`; enables the CCPA opt-out controls and cookie behavior |
 | `ADMIN_PATH` | `administration` | Admin panel path segment |
 | `MODE` | `production` | Application mode |
 | `DEBUG` | `false` | Enable debug behavior |
@@ -118,6 +119,9 @@ server:
     cert: /etc/casapps/cvedex/ssl/server.crt
     key: /etc/casapps/cvedex/ssl/server.key
     min_version: TLS1.2
+  privacy:
+    data:
+      sold: false
 ```
 
 The TLS listener currently supports a manually supplied certificate and key
