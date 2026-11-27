@@ -57,6 +57,13 @@ Lookups fail open when the data is missing, stale, or unknown; private and
 loopback addresses are never looked up. Country rules only deny requests and
 never replace authentication or authorization.
 
+Trusted client IPs are configured under `server.security.allowlist`. Valid IPs
+and CIDRs bypass blocklist, rate-limit, and GeoIP enforcement while all
+authentication and authorization checks remain active. Invalid and overly
+broad configured ranges are skipped with a warning. Administrators can manage
+entries at `/server/{admin_path}/security/allowlist` or through the authenticated
+API; changes are written to `server.yml` and take effect immediately.
+
 IP and domain blocklists are configured under `server.security.blocklists`.
 The built-in `firehol_level1` IP list is always active when blocklists are
 enabled. `extra_sources` accepts entries with `id`, `type` (`ip` or `domain`),
@@ -65,14 +72,19 @@ each source is stored separately under `{DATA_DIR}/security/blocklists/` and
 retains its last valid copy when an update fails. Files older than 72 hours
 report a degraded health check. A source with no valid local copy reports an
 error. IP entries overlapping private, loopback, link-local, shared, or
-trusted ranges are skipped. Domain lists match the request Origin (or Referer),
+IPv6 unique-local ranges are skipped. Domain lists match the request Origin (or Referer),
 submitted email domains, and URL fields in JSON or form bodies; they never
 match the server's Host header. Rejections return `403`; `action: drop` closes
-the connection where the HTTP protocol supports it.
+the connection where the HTTP protocol supports it. The current blocklist
+client uses the direct TCP peer address; trusted-proxy client-IP resolution is
+not implemented yet.
 
 ```yaml
 server:
   security:
+    allowlist:
+      - cidr: 192.0.2.10
+        description: "Monitoring host"
     blocklists:
       enabled: true
       auto_update: true

@@ -24,6 +24,12 @@ not implemented yet. `HTTP_RATE_LIMIT_REQUESTS` and `HTTP_RATE_LIMIT_WINDOW`
 control the general client read limit and window; other class defaults are
 currently fixed.
 
+Entries under `server.security.allowlist` bypass IP blocklists, HTTP rate
+limits, and GeoIP country rules. They do not bypass administrator sessions,
+API token validation, CSRF, or path security. Administrators manage entries at
+`/server/{admin_path}/security/allowlist` or through the authenticated API;
+changes persist in `server.yml` and take effect immediately.
+
 GeoIP is a deny-only risk signal. It runs after HTTP rate limiting and before
 route authentication, so blocked traffic consumes rate-limit capacity. Missing
 or stale databases, failed lookups, unknown countries, and private/internal

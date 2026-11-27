@@ -49,6 +49,13 @@ replaces the token in `secrets.yml`, immediately invalidates the old token,
 and records `security.operator_token_regenerated` in the audit log. The new
 token is displayed once and is not returned by an API.
 
+The trusted IP allowlist page is `/server/{admin_path}/security/allowlist`.
+Administrators can add or remove IP addresses and CIDRs, inspect their source,
+and check whether an address matches. The authenticated API exposes list, add,
+remove, and check operations. Changes are written to `server.yml` and applied
+immediately; both additions and removals create audit events. Allowlisting
+bypasses blocklists, request limits, and country rules, but never authentication.
+
 The status page at `/server/{admin_path}/status` shows the public health
 document, process state, restart requirements, activity counters, and
 component checks. Its JSON counterpart is
@@ -122,7 +129,7 @@ applies the configured audit-log rotation and retention policy even when no new
 audit event arrives. TLS renewal, security-report/key retirement cleanup,
 keyserver retries, and cluster heartbeats are not implemented yet; their
 configuration entries do not imply that work runs. Blocklist behavior is
-configured in `server.yml`; see [Configuration](configuration.md#).
+configured in `server.yml`; see [Configuration](configuration.md#configuration).
 These remaining limitations are tracked in the project implementation backlog.
 Tor and I2P processes are managed separately from these scheduler callbacks;
 see [Integrations](integrations.md#tor-and-i2p-overlays).

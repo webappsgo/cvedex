@@ -29,6 +29,10 @@ never returned by reads:
 | GET, PUT | `/api/v1/server/{admin_path}/email/templates/{name}` | Read or validate and save a template |
 | POST | `/api/v1/server/{admin_path}/email/templates/{name}/reset` | Remove a custom override and restore the embedded template with `{"confirm":true}` |
 | POST | `/api/v1/server/{admin_path}/email/templates/{name}/preview` | Render supplied template data without sending email |
+| GET | `/api/v1/server/{admin_path}/security/allowlist` | List trusted IP and CIDR entries |
+| POST | `/api/v1/server/{admin_path}/security/allowlist` | Validate and add a trusted IP or CIDR entry |
+| DELETE | `/api/v1/server/{admin_path}/security/allowlist/{id}` | Remove one trusted entry |
+| GET | `/api/v1/server/{admin_path}/security/allowlist/check/{ip}` | Check whether an IP address is allowlisted |
 
 | Method | Path | Behavior |
 |---|---|---|

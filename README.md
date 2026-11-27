@@ -19,6 +19,7 @@ gateway. The default zone is `cve.`; deployments can choose another zone.
 - Authenticated administration for settings, service status, DNSSEC, audit logs, scheduled tasks, metrics credentials, backups, and network overlays
 - Authenticated Prometheus metrics, Grafana dashboard export, and a bounded Loki-compatible log stream
 - Managed Tor and I2P services with health reporting and operator controls
+- HTTPS-updated IP and domain blocklists with per-source last-good data and health checks
 - Guest theme, language, consent, and cross-device preference controls
 - `cvedex-cli` for CVE lookup, search, local dataset generation, data synchronization, and zone downloads
 - Six web interface languages: English, Spanish, French, German, Italian, and Arabic; Arabic uses right-to-left layout
