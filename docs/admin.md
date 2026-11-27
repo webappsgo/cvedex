@@ -24,10 +24,12 @@ not shown.
 
 The settings page is `/server/{admin_path}/settings`. It configures the data
 refresh interval, upstream redirect URL template, AXFR/IXFR client ACL, NOTIFY
-targets, DNSSEC signing, DNS response rate limiting, and HTTP rate limiting.
+targets, DNSSEC signing, and DNS response rate limiting.
 Validated settings are persisted in `server.yml`; values that support live
 application take effect without restarting. DNSSEC key rotation is available
-from this page.
+from this page. HTTP request limiting applies by endpoint class, but its full
+class settings are not yet editable in the panel; see [Security](security.md)
+for the current limits and controls.
 
 The security page at `/server/{admin_path}/security` displays the operator
 token masked. Regeneration requires the current administrator password,
