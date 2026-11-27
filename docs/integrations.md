@@ -76,7 +76,7 @@ The public data API is rooted at `/api/v1` and is read-only. Admin settings
 routes are separate and support authenticated updates. The routes and response
 behavior are documented in [API reference](api.md). Examples:
 
-The host HTTP port is persisted in `server.yml`; set `CVEDEX_PORT=64580` at
+The server machine's HTTP port is persisted in `server.yml`; set `CVEDEX_PORT=64580` at
 startup to use the example port below.
 
 ```sh
@@ -116,6 +116,26 @@ permissions of that credential. OAuth/OIDC, webhooks, email delivery, and
 federation are not enabled. The supported external interfaces are authoritative
 DNS, the REST JSON API, read-only GraphQL, and authenticated MCP.
 
-Tor hidden-service and I2P eepsite runtime integration are not available in
-the current server implementation. Setting `I2P_ENABLED` changes the resolved
-configuration value but does not launch an I2P provider or listener.
+## Tor and I2P overlays
+
+At service startup, cvedex creates dedicated loopback HTTP backends and starts
+the overlay manager. When a Tor binary is available, the manager launches a
+dedicated Tor process, negotiates authentication through bine's Tor control API,
+subscribes to `STATUS_CLIENT` and `HS_DESC` events before enabling network
+access, and configures the hidden service to forward to the Tor backend. It
+tracks bootstrap and hostname events, waits up to 60 seconds for descriptor
+upload, and restarts the process when control events or its 10-minute health
+checks detect a failure.
+
+I2P starts when enabled (`I2P_ENABLED`; enabled by default in containers) and
+uses an available `i2pd` binary or a configured reachable SAM bridge to create
+an eepsite forwarding to the I2P backend. Provider status, running state, and
+published hostname are included in the JSON health response as
+`features.tor.{enabled,running,state,status,hostname}` and
+`features.i2p.{enabled,running,state,status,hostname,provider}`. Plain-text
+health responses expose the same status, running, hostname, and provider
+fields at `/server/healthz` and `/api/v1/server/healthz`.
+
+When an I2P provider or session fails, the manager retries startup after 30
+seconds. The authenticated [I2P administration page](admin.md#network-overlays)
+also supports provider restart and destination regeneration.

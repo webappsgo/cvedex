@@ -2,8 +2,11 @@
 
 1. Install cvedex using the [installation guide](installation.md).
 2. Set `DATA_URL` and `CHECKSUM_URL` if you use a data mirror. The defaults point to the project's latest published data asset.
-3. Start the service with DNS port 53 available, or set `DNS_PORT` to a development port. The host HTTP port is selected once and persisted; set `CVEDEX_PORT` if you want a fixed port.
+3. Start the service with DNS port 53 available, or set `DNS_PORT` to a development port. The server machine's HTTP port is selected once and persisted; set `CVEDEX_PORT` if you want a fixed port.
 4. Query the configured zone with `dig` or use the JSON API.
+
+The examples below assume a local development instance using DNS port 53 and
+HTTP port 64580.
 
 ```sh
 dig TXT severity.2024-3094.cve @127.0.0.1

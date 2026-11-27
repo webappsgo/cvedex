@@ -2,13 +2,15 @@
 
 cvedex makes CVE records queryable through authoritative DNS and a read-only HTTP API. The default zone is `cve.`; the configured zone may be a delegated domain or an internally routed custom zone.
 
-HTTP requests to the zone apex show the landing page. Requests whose host is a
+HTTP requests to the zone apex show the landing page. Requests whose hostname is a
 valid CVE name redirect to the configured upstream CVE URL when that record is
 loaded.
 
 The service loads a verified compressed dataset generated from CVE Program v5 records, CISA KEV, and FIRST EPSS data. It fetches the initial snapshot from the configured HTTPS distribution and refreshes it daily, keeping the last verified snapshot active when a refresh fails.
 
-## Try a query
+## Try a query locally
+
+These examples assume a local development server using the default DNS zone.
 
 ```sh
 dig TXT severity.2024-3094.cve @127.0.0.1

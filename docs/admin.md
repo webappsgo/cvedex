@@ -22,9 +22,11 @@ not shown.
 
 ## Settings and security
 
-The settings page is `/server/{admin_path}/settings`. It configures the data
-refresh interval, upstream redirect URL template, AXFR/IXFR client ACL, NOTIFY
-targets, DNSSEC signing, and DNS response rate limiting.
+The settings page is `/server/{admin_path}/settings`. It configures the
+upstream redirect URL template, AXFR/IXFR client ACL, NOTIFY targets, DNSSEC
+signing, and DNS response rate limiting. Dataset refresh timing is configured
+through the `cve_update` task at
+`server.scheduler.tasks.cve_update.schedule`; see [Configuration](configuration.md).
 Validated settings are persisted in `server.yml`; values that support live
 application take effect without restarting. DNSSEC key rotation is available
 from this page. HTTP request limiting applies by endpoint class, but its full
@@ -48,6 +50,30 @@ tokens. New tokens are shown once; the page never displays stored tokens.
 System and Go runtime collector changes require a server restart. Metrics
 endpoints are described in the [API reference](api.md#internal-metrics).
 
+## Network overlays
+
+The I2P page at `/server/{admin_path}/network/i2p` shows provider status,
+address, and uptime, and lets administrators edit validated I2P settings,
+restart the provider, or regenerate its destination. Changes are atomically
+saved to configuration; changing whether I2P is enabled restarts the provider.
+The Tor page at `/server/{admin_path}/network/tor` shows read-only status,
+onion address, and uptime.
+
+Both pages require an administrator session. Form submissions use POST and
+CSRF protection. The operator APIs use a Bearer token:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/server/{admin_path}/network/i2p` | Read I2P status and settings |
+| PATCH | `/api/v1/server/{admin_path}/network/i2p` | Validate, persist, and apply partial I2P settings |
+| POST | `/api/v1/server/{admin_path}/network/i2p/validate` | Validate candidate I2P settings without applying them |
+| POST | `/api/v1/server/{admin_path}/network/i2p/restart` | Request an asynchronous I2P provider restart |
+| POST | `/api/v1/server/{admin_path}/network/i2p/regenerate` | Regenerate the eepsite destination and request provider startup |
+| GET | `/api/v1/server/{admin_path}/network/tor` | Read Tor status |
+
+See [Integrations](integrations.md#tor-and-i2p-overlays) for process behavior
+and recovery.
+
 Browser requests authenticate with the administrator session. Admin API
 requests use `Authorization: Bearer <operator-token>`; a browser session
 cookie does not authenticate API requests. The implemented JSON routes are:
@@ -56,6 +82,12 @@ cookie does not authenticate API requests. The implemented JSON routes are:
 |---|---|---|
 | GET, PATCH | `/api/v1/server/{admin_path}/settings` | Read or update validated server settings |
 | GET | `/api/v1/server/{admin_path}/status` | Read server status and restart information |
+| GET | `/api/v1/server/{admin_path}/network/i2p` | Read I2P status and settings |
+| PATCH | `/api/v1/server/{admin_path}/network/i2p` | Validate, persist, and apply partial I2P settings |
+| POST | `/api/v1/server/{admin_path}/network/i2p/validate` | Validate candidate settings without applying them |
+| POST | `/api/v1/server/{admin_path}/network/i2p/restart` | Request an asynchronous provider restart |
+| POST | `/api/v1/server/{admin_path}/network/i2p/regenerate` | Regenerate the I2P destination and request startup |
+| GET | `/api/v1/server/{admin_path}/network/tor` | Read Tor status |
 | POST | `/api/v1/server/{admin_path}/security/dnssec/rotate` | Rotate DNSSEC keys |
 | GET | `/api/v1/server/{admin_path}/logs/audit` | Search and page through audit entries, or export filtered results |
 | GET, PATCH, POST | `/api/v1/server/{admin_path}/backup` | Read settings/history, update settings, or create a backup |
@@ -63,6 +95,8 @@ cookie does not authenticate API requests. The implemented JSON routes are:
 | GET | `/api/v1/server/{admin_path}/scheduler` | List registered scheduled tasks and their persisted state |
 | GET, PATCH | `/api/v1/server/{admin_path}/scheduler/{id}` | Read a task or update its enabled state and schedule |
 | POST | `/api/v1/server/{admin_path}/scheduler/{id}/run` | Run an enabled task immediately |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/enable` | Enable a task when its configuration allows it |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/disable` | Disable a task when its configuration allows it |
 | GET | `/api/v1/server/{admin_path}/scheduler/{id}/history` | Read recent task executions |
 
 ## Scheduler
@@ -70,16 +104,21 @@ cookie does not authenticate API requests. The implemented JSON routes are:
 The authenticated task page is `/server/{admin_path}/scheduler`. It displays
 each registered task's schedule, enabled state, last and next run, recent
 result, and execution history. Operators can enable or disable a task, change
-its schedule, open the history page, or run it immediately. The API routes are
-listed above and use the operator Bearer token.
+its schedule, open the history page, or run it immediately. Browser schedule
+changes POST to `/server/{admin_path}/scheduler/{id}`; task toggles and manual
+runs also use POST forms. Critical tasks cannot be disabled. The API routes
+are listed above and use the operator Bearer token; browser controls use the
+authenticated session and CSRF tokens.
 
 The current scheduler registers `cve_update`, `session_cleanup`,
 `token_cleanup`, `healthcheck_self`, and daily/hourly backups when the backup
 runner is available. `token_cleanup` removes revoked or expired administrator
 tokens and used or expired password-reset and email-verification tokens. The
 catalogue still lacks required runners for TLS renewal, GeoIP, blocklists,
-security cleanup, keyserver retries, update checks, Tor, I2P, and cluster
-heartbeats; those tasks are not available to run yet.
+security cleanup, keyserver retries, update checks, Tor and I2P health checks,
+and cluster heartbeats; those tasks are not available to run yet. Tor and I2P
+processes are managed separately from these scheduler callbacks; see
+[Integrations](integrations.md#tor-and-i2p-overlays).
 
 ## Audit log
 

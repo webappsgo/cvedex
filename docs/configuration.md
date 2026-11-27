@@ -5,7 +5,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | Variable | Default | Purpose |
 |---|---:|---|
 | `LISTEN` | `::` | HTTP listener address |
-| `PORT` | First-run random port from `64000`–`64999` on a host; `80` in a container | HTTP listener port; the first-run host value is saved to `server.yml` |
+| `PORT` | First-run random port from `64000`–`64999` on a server machine; `80` in a container | HTTP listener port; the first-run machine value is saved to `server.yml` |
 | `CVEDEX_PORT` | unset | Project-prefixed HTTP port override; takes precedence over `PORT` |
 | `DNS_ADDRESS` | `0.0.0.0` | UDP and TCP DNS bind address |
 | `DNS_PORT` | `53` | UDP and TCP DNS listener port |
@@ -17,7 +17,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `DNS_RRL_BURST` | `40` | Initial equivalent-response burst per client |
 | `DNSSEC_ENABLED` | `true` | Sign each built zone offline with the persisted KSK and ZSK |
 | `DNS_TRANSFER_ACL` | Loopback only when unset | IP addresses or CIDRs allowed to request TCP AXFR/IXFR |
-| `DNS_NOTIFY_TARGETS` | Empty | DNS secondary hostnames or `host:port` targets notified after a successful build |
+| `DNS_NOTIFY_TARGETS` | Empty | DNS secondary hostnames or `hostname:port` targets notified after a successful build |
 | `REDIRECT_URL_TEMPLATE` | `https://www.cve.org/CVERecord?id={cve_id}` | Shared CVE redirect and DNS URI target; placeholders are `{year}`, `{sequence}`, and `{cve_id}` |
 | `HTTP_RATE_LIMIT_REQUESTS` | `120` | Read requests allowed per anonymous client or valid operator token in the general HTTP window |
 | `HTTP_RATE_LIMIT_WINDOW` | `1m` | Read, write, health, and global-burst rate-limit window; minimum `1s` |
@@ -36,7 +36,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CLI_MIN_VERSION` | Empty | Minimum supported CLI version published by autodiscovery |
 | `PID_FILE` | OS-specific | Server PID file path |
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
-| `I2P_ENABLED` | `false` on hosts; `true` in containers | I2P runtime setting; process/listener integration is not currently available |
+| `I2P_ENABLED` | `false` on server machines; `true` in containers | Enable the managed I2P eepsite process and loopback HTTP backend |
 | `SECURE_COOKIES` | `false` | Require Secure on admin session cookies |
 | `PRIVACY_DATA_SOLD` | `false` | Set `server.privacy.data.sold`; enables the CCPA opt-out controls and cookie behavior |
 | `ADMIN_PATH` | `administration` | Admin panel path segment |
@@ -49,7 +49,6 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CACHE_DIR` | OS-specific | Cache directory |
 | `DATA_URL` | `https://github.com/webappsgo/cvedex/releases/download/data-latest/cvedex-data.json.gz` | HTTPS URL for the generated dataset |
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
-| `REFRESH_INTERVAL` | `24h` | Dataset refresh period; minimum `1m` |
 | `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
 The YAML file uses the same namespaced keys, for example:
@@ -83,6 +82,8 @@ server:
       cve_update:
         schedule: "0 5 * * *"
         enabled: true
+        retry_on_fail: true
+        retry_delay: 1h
       backup_daily:
         schedule: "0 2 * * *"
         enabled: true
@@ -94,7 +95,6 @@ server:
       path: /var/lib/casapps/cvedex/db
   data_url: https://github.com/webappsgo/cvedex/releases/download/data-latest/cvedex-data.json.gz
   checksum_url: https://github.com/webappsgo/cvedex/releases/download/data-latest/cvedex-data.json.gz.sha256
-  refresh_interval: 24h
   redirect:
     url_template: https://www.cve.org/CVERecord?id={cve_id}
   rate_limit:
@@ -119,6 +119,18 @@ server:
     cert: /etc/casapps/cvedex/ssl/server.crt
     key: /etc/casapps/cvedex/ssl/server.key
     min_version: TLS1.2
+  i2p:
+    enabled: false
+    expose: false
+    binary: ""
+    sam_address: 127.0.0.1:7656
+    virtual_port: 80
+    inbound_length: 3
+    outbound_length: 3
+    inbound_quantity: 5
+    outbound_quantity: 5
+    signature_type: 7
+    bootstrap_timeout: 300
   privacy:
     data:
       sold: false
@@ -129,6 +141,13 @@ through YAML (`server.ssl.enabled`, `server.ssl.cert`, `server.ssl.key`, and
 `server.ssl.min_version`). The certificate and key must both be configured;
 the minimum version is `TLS1.2` or `TLS1.3`. ACME issuance and renewal are not
 available yet. Keep the private key in a protected configuration path.
+
+I2P settings live under `server.i2p`. The `I2P_ENABLED` environment variable
+overrides `server.i2p.enabled`. On bare machines I2P defaults to disabled; in
+containers it defaults to enabled. The authenticated network page and API can
+change the validated settings, which are written atomically to configuration.
+Changing the enabled state restarts the I2P provider. See
+[Administration](admin.md#network-overlays) for the available controls.
 
 The HTTP router accepts requests under the configured `baseurl` and prefixes
 its page links, static assets, redirects, and admin routes. When deployed behind
@@ -168,4 +187,9 @@ files from `CLI_BINARY_DIR` (or `{DATA_DIR}/cli`). Release binaries appear in
 the response only when their names, release version, and SHA-256 checksums
 match the files in that directory.
 
-The built-in scheduler refreshes the dataset daily by default with ±10% jitter. `SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to mirror a data release from another trusted distribution endpoint.
+The `cve_update` scheduler task refreshes the dataset at
+`server.scheduler.tasks.cve_update.schedule`, which defaults to 05:00 daily in
+the scheduler timezone. It retries failures when `retry_on_fail` is enabled,
+using exponential delays beginning at `retry_delay` for up to three retries.
+`SIGHUP` requests an immediate refresh. Set `DATA_URL` and `CHECKSUM_URL` to
+mirror a data release from another trusted distribution endpoint.

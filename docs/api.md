@@ -4,6 +4,19 @@ The public data API uses version `v1` and is read-only. Admin settings routes
 are separate and support authenticated changes. Responses use JSON. A missing
 dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 
+The authenticated network overlay controls are documented in
+[Administration](admin.md#network-overlays). They require the operator Bearer
+token and use these routes:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/server/{admin_path}/network/i2p` | Read I2P status and settings |
+| PATCH | `/api/v1/server/{admin_path}/network/i2p` | Validate and apply partial I2P settings |
+| POST | `/api/v1/server/{admin_path}/network/i2p/validate` | Validate I2P settings without applying them |
+| POST | `/api/v1/server/{admin_path}/network/i2p/restart` | Request an asynchronous I2P restart |
+| POST | `/api/v1/server/{admin_path}/network/i2p/regenerate` | Regenerate I2P destination and request startup |
+| GET | `/api/v1/server/{admin_path}/network/tor` | Read Tor status |
+
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/v1` | API identity and health link |
@@ -105,7 +118,7 @@ credential. Metrics routes use their corresponding service token. See
 [Administration](admin.md) for the routes and first-run token handling. A
 browser session cookie does not authenticate API requests.
 
-The host HTTP port is selected on first run and stored in `server.yml`. Set
+The server machine's HTTP port is selected on first run and stored in `server.yml`. Set
 `CVEDEX_PORT=64580` or `PORT=64580` when starting the service to use the port
 shown in the examples below; `CVEDEX_PORT` takes precedence.
 

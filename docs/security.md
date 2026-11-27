@@ -5,8 +5,8 @@
 - DNS answers are authoritative for the configured zone and reject out-of-zone queries with `REFUSED`.
 - DNS query logging is not enabled by the current server.
 - HTTP security headers include a same-origin Content Security Policy, frame denial, content-type sniffing protection, and a restrictive referrer policy.
-- Public API routes are read-only. Dataset files are checked against SHA-256 and schema validation before use.
-- `/server/healthz` and `/api/v1/server/healthz` expose service health without host paths or secrets.
+- CVE data API routes are read-only. The preferences endpoint accepts guest preference updates; administrator API routes require an operator Bearer token, while browser forms use an authenticated administrator session.
+- `/server/healthz` and `/api/v1/server/healthz` expose service health without filesystem paths or secrets.
 
 ## Operational controls
 

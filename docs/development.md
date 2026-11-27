@@ -4,7 +4,7 @@ The project is written in Go. Follow the repository's `AI.md` for required archi
 
 ## Toolchain
 
-Use Docker with `casjaysdev/go:latest` for all Go work. Do not install Go on the host.
+Use Docker with `casjaysdev/go:latest` for all Go work. Do not install Go on the development machine.
 
 ## Build and checks
 
