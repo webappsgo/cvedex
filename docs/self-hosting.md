@@ -28,8 +28,8 @@ network access, and waits up to 60 seconds for descriptor upload. Control
 events and 10-minute health checks trigger process restart after failure. I2P
 starts when enabled and uses `i2pd` or a reachable SAM bridge to serve the
 eepsite through its backend. Overlay enabled, running, status, provider, and
-hostname fields are included in JSON and plain-text health output. I2P
-provider/session recovery and retry backoff remain incomplete. See
+hostname fields are included in JSON and plain-text health output. When an I2P
+provider or session fails, the manager retries startup after 30 seconds. See
 [Integrations](integrations.md#tor-and-i2p-overlays).
 
 ## DNS secondary and DNSSEC

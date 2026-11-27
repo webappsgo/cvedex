@@ -60,19 +60,9 @@ The Tor page at `/server/{admin_path}/network/tor` shows read-only status,
 onion address, and uptime.
 
 Both pages require an administrator session. Form submissions use POST and
-CSRF protection. The operator APIs use a Bearer token:
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/v1/server/{admin_path}/network/i2p` | Read I2P status and settings |
-| PATCH | `/api/v1/server/{admin_path}/network/i2p` | Validate, persist, and apply partial I2P settings |
-| POST | `/api/v1/server/{admin_path}/network/i2p/validate` | Validate candidate I2P settings without applying them |
-| POST | `/api/v1/server/{admin_path}/network/i2p/restart` | Request an asynchronous I2P provider restart |
-| POST | `/api/v1/server/{admin_path}/network/i2p/regenerate` | Regenerate the eepsite destination and request provider startup |
-| GET | `/api/v1/server/{admin_path}/network/tor` | Read Tor status |
-
-See [Integrations](integrations.md#tor-and-i2p-overlays) for process behavior
-and recovery.
+CSRF protection. The operator API routes use a Bearer token and are listed in
+the route inventory below. See [Integrations](integrations.md#tor-and-i2p-overlays)
+for process behavior and recovery.
 
 Browser requests authenticate with the administrator session. Admin API
 requests use `Authorization: Bearer <operator-token>`; a browser session
