@@ -903,7 +903,7 @@ Always write messages so a developer reading only the step name + message unders
 
 ### Release Pre-flight Validation
 
-The GitHub Releases API returns HTTP 422 `"tag_name is not a valid tag"` when the tag does not exist at API call time or is malformed. The correct fix is for the **release job to own the tag** — delete it if it exists, then recreate it at the current HEAD. This ensures the tag always exists and points to the right commit, and makes the workflow idempotent.
+The GitHub Releases API returns HTTP 422 `"tag_name is not a valid tag"` when the tag does not exist at API call time or is malformed. The release is triggered BY a tag push, so that tag exists: the pre-flight verifies it and NEVER deletes, recreates or moves it. `release.yml` and `beta.yml` may carry `workflow_dispatch` only to re-run for an existing tag: the run is started with that tag selected as the ref (a branch ref fails the pre-flight on purpose) and there is no tag input.
 
 The `release` job already has `contents: write` to push assets — this covers tag push as well.
 
@@ -925,12 +925,12 @@ The `release` job already has `contents: write` to push assets — this covers t
       echo "::error::Tag '$tag' contains whitespace or control characters and is not a valid GitHub tag name."
       exit 1
     fi
-    # Delete existing tag (local + remote) then recreate at current HEAD
-    git tag -d "$tag" 2>/dev/null || true
-    git push origin ":refs/tags/$tag" 2>/dev/null || true
-    git tag "$tag"
-    git push origin "refs/tags/$tag"
-    echo "Tag '$tag' ensured at $(git rev-parse HEAD)"
+    # the tag that triggered this run exists already and is never deleted or moved: verify that it points at the checked-out commit
+    if [ "$(git rev-parse "refs/tags/$tag^{commit}")" != "$(git rev-parse HEAD)" ]; then
+      echo "::error::Tag '$tag' does not point at the checked-out commit."
+      exit 1
+    fi
+    echo "Tag '$tag' verified at $(git rev-parse HEAD)"
 ```
 
 ### Release Integrity
@@ -4539,7 +4539,7 @@ If blocked on current feature:
 □ Mode detection (production/development/debug) working
 □ Debug flag (--debug/DEBUG) working
 □ SSL/TLS support implemented
-□ User authentication implemented
+□ Server Admin authentication implemented (PART 17); user accounts only when PART 34 is activated
 □ Admin panel implemented
 □ Logging in SPEC format
 ```
@@ -4927,6 +4927,8 @@ Content-Type: application/json
 | `Update()` | `UpdateUserProfile()`, `UpdateLastLogin()` | Update what? |
 | `Check()` | `CheckUserPermission()`, `CheckRateLimit()` | Check what? |
 | `Detect()` | `DetectDisplayEnv()`, `DetectOSPlatform()` | Detect what? |
+
+**Exception: names this specification requires verbatim.** `config.Load(os.Args[1:])` and `app.Run(ctx, cfg)` (PART 28) keep those names: the package qualifier supplies the intent (`config.Load` loads the process configuration, `app.Run` runs the process). `LoadCLIConfig()` in the client setup examples loads the CLI's `cli.yml` only and never replaces the server loader `config.Load`.
 
 **Boolean functions MUST indicate what condition they check:**
 
@@ -6171,8 +6173,7 @@ cat "$LICDIR/licenses.csv"
 echo ""
 echo "Next steps:"
 echo "1. Review the report above"
-echo "2. Update LICENSE.md with any new dependencies"
-echo "3. Commit the changes"
+echo "2. Update LICENSE.md with any new dependencies (this report is deleted when the script exits)"
 ```
 
 ## README.md License Badge (REQUIRED)
@@ -6235,7 +6236,7 @@ package main
 | **Record** | In the project's third-party notices (`LICENSE.md`, "Third-Party Licenses") and on the attribution surface (`/server/about`, or the README when the project has no web page) |
 | **Per-record provenance** | When records come from several sources, every record or file carries a `source` key that names its entry in the third-party notices |
 | **Unknown or unusable terms** | Content with no stated license, a license that forbids redistribution, a site that forbids scraping, or an unknown origin is NOT embedded. The project asks the user instead of guessing |
-| **Generated content** | It counts as the project's own only when the user says so, and is never presented with an invented source |
+| **Generated content** | It counts as the project's own only when the user says so, and is never presented with an invented source. Owner-directed original content (the owner declares it theirs and the AI writes it) is recorded in the third-party notices as "Original content, owned by {owner}, written with AI assistance at the owner's direction, released under the project's license", with no external source or URL; every record's `source` key is `original`, the attribution surface lists it under "Original content" without naming any third party, and the owner's statement is kept in the project's IDEA.md |
 | **Project translations** | Strings translated for the project under the localization rule (by the AI or a human translator, I18N & A11Y → "Translating") are the project's own work and need no source record; a human translator's pull request is under the project license. A translation copied from another project, a service or a third-party catalogue is third-party content and follows every row above |
 
 ## License Compatibility Matrix
@@ -8784,7 +8785,7 @@ Wherever this specification says a setting is set "in `server.yml`", it means th
 | **Early read** | The early config read (PART 8 startup, step 8e) never opens `secrets.yml`: it needs only `server.port`, `server.address`, `server.daemonize` and `server.pidfile`, plus each raw-protocol listener's `{proto}.enabled`, `{proto}.address` and `{proto}.port` |
 | **Permissions** | Always `0600` (PART 8 → "Directory Validation Rules": private paths); a wrong mode is fixed at start |
 | **Reload** | The file watcher watches it with `server.yml`, `yaml.d/` and `assets/`; a change re-merges everything and an invalid result keeps the last good config |
-| **Backup** | Included in every backup whenever it exists (PART 22 → "Backup Contents"), so a restore brings back the encryption key and every other secret. `server.token` is the one exception: it is left out of the backup copy (PART 11), and a restore keeps the target host's own token, or generates one (printed once) when it has none |
+| **Backup** | Included in every backup whenever it exists (PART 22 → "Backup Contents"), so a restore brings back the encryption key and every other secret. `server.token` is the one exception: it is blanked in the backup copy, the key stays with an empty value (PART 11), and a restore keeps the target host's own token, or generates one (printed once) when it has none |
 | **Never exposed** | Secret values are never logged, never printed by `--config` (shown as `********`), and never returned by any API response (PART 11) |
 | **Cluster Mode** | `secrets.yml` is local to each node. Config sync (the remote `srv_config` table and the area files) never carries a secret key. A value the cluster shares reaches a node by the mechanism the spec names for it (the join payload carries the database password, the encryption key and every generated shared secret: `server.token`, `server.metrics.auth.tokens.*` and the webhook `_secret` values, PART 34), and the receiving node writes it to ITS OWN `secrets.yml` (atomic, `0600`), never to `server.yml` and never to `_cache` |
 ### Connection Strings (database and cache)
@@ -9273,6 +9274,8 @@ Binary checks:
    "Restore requires administrator authorization.
     Run as root or provide admin credentials."
 ```
+
+**`--maintenance mode <production|development|debug>`** changes the CONFIGURED app mode, never the maintenance state (maintenance is a `status`, not a mode): it writes `server.mode` in `server.yml` and a running server applies it at its next restart, which the command says. A missing or unknown value is a usage error (exit `2`).
 
 **Mode change authorization flow:**
 
@@ -11357,18 +11360,18 @@ func ColorEnabled(forceColor *bool) bool {
 
 // EmojiEnabled checks if emoji output should be used
 func EmojiEnabled() bool {
-    // 1. Config override (force emojis on)
+    // 1. TERM=dumb disables emojis and nothing overrides it (the no-emoji rule for dumb terminals)
+    if os.Getenv("TERM") == "dumb" {
+        return false
+    }
+
+    // 2. Config override (force emojis on; it overrides NO_COLOR only)
     if cfg := GetConfig(); cfg != nil && cfg.Output.EmojiSet && cfg.Output.Emoji {
         return true
     }
 
-    // 2. NO_COLOR disables emojis (practical plain output)
+    // 3. NO_COLOR disables emojis (practical plain output)
     if os.Getenv("NO_COLOR") != "" {
-        return false
-    }
-
-    // 3. TERM=dumb disables emojis
-    if os.Getenv("TERM") == "dumb" {
         return false
     }
 
@@ -11941,7 +11944,7 @@ PHASE 5: Server startup (actual server start)
     ├─ Run CREATE TABLE IF NOT EXISTS for all tables of each database
     ├─ Run schema migrations if needed
     ├─ Verify database integrity
-    └─ ANY failure above (connect, create, migrate, integrity): log ONE error, mark the `database` check `error`, enter `maintenance` and CONTINUE with the next steps so the listener starts and the health endpoint answers; work that needs the database (loading task state) waits until self-healing reconnects (PART 5); never exit ("Startup Never Fails")
+    └─ ANY failure above (connect, create, migrate, integrity): log ONE error, mark the `database` check `error`, enter `maintenance` and CONTINUE with the next steps so the listener starts and the health endpoint answers; work that needs the database (loading task state) waits until self-healing reconnects (PART 5), and self-healing also re-runs a migration that failed; never exit ("Startup Never Fails")
 
 16. Start scheduler (see PART 19 for full task list):
     ├─ Initialize background task scheduler
@@ -14368,7 +14371,7 @@ Raw machine values belong to JSON/API responses, Prometheus metrics, and logs on
 | WRONG | RIGHT |
 |-------|-------|
 | `GET /api/{api_version}/resource/random` | `https://api.example.com/api/{api_version}/resource/random` |
-| `POST /api/{api_version}/server/{admin_path}/settings` | `https://api.example.com/api/{api_version}/server/{admin_path}/settings` |
+| `PATCH /api/{api_version}/server/{admin_path}/settings` | `https://api.example.com/api/{api_version}/server/{admin_path}/settings` |
 | `http://localhost:8080/api` | `http://192.168.1.100:64580/api` |
 | `http://0.0.0.0:80/server/healthz` | `https://myserver.example.com/server/healthz` |
 
@@ -15276,7 +15279,7 @@ update. The fix is mandatory URL stamping:
 
 | Rule | Detail |
 |------|--------|
-| **`asset()` template helper** | Every static asset reference in every template goes through a shared helper that appends the build stamp: `/static/app.css?v={project_version}-{short_commit}`. Hand-written bare `/static/...` URLs in templates are a bug. |
+| **`asset()` template helper** | Every static asset reference in every template goes through a shared helper that appends the build stamp: `/static/css/common.css?v={project_version}-{short_commit}`. Hand-written bare `/static/...` URLs in templates are a bug. |
 | **`immutable` only on a matching stamp** | The static handler sends `public, max-age=31536000, immutable` ONLY when the request's `?v=` equals the running build's stamp. Missing or mismatched stamp → `no-cache` + `ETag` (the bytes still serve — cached HTML from an old version never breaks, it just revalidates). |
 | **HTML is never cached** | All HTML documents: `Cache-Control: no-store` plus an `ETag` derived from the build stamp, so any intermediary that ignores `no-store` still revalidates. The one exception is the service worker's offline copy of a public page (PART 16 -> "Offline copies are for public pages only"): it lives in the Cache API, is only ever a fallback after a failed network fetch, and never replaces a fresh response. |
 | **Service worker (if the project adds one)** | Cache name MUST embed the full build stamp `{project_version}-{short_commit}` (`{asset_stamp}`); `activate` deletes all caches from other versions. `/sw.js` and `/manifest.json` are served `no-cache` + build-stamp `ETag` — a cached service worker script delays every other update mechanism. |
@@ -15829,7 +15832,7 @@ SQLite allows ONE writer at a time. Without the rules below, concurrent requests
 | Batches | Cleanup, retention, audit purge and import work in batches of at most 500 rows per transaction, with a short yield between batches (the scheduler tasks of PART 19). `VACUUM` runs only from a maintenance task on the write handle, never inside a transaction and never during a request |
 | Hot counters | Rate-limit counters, request metrics, session `last_used` and other per-request bookkeeping are NOT written per request. They live in memory and one goroutine flushes them in a single transaction every 30 s and on shutdown. `last_used` (a token's `last_used_at`, and a session's where the template has sessions) is updated only when the stored value is older than 60 seconds and then reaches the database with the next flush, so a token or session is written at most once a minute |
 | Retry | `Write` retries a busy or locked error (`SQLITE_BUSY`, `SQLITE_LOCKED` and their extended codes) up to 5 times with exponential backoff (25 ms base, doubled each time) plus jitter, always inside the context deadline. A callback is never retried after its commit succeeded |
-| One process | Only the server process writes the file. A CLI or `--maintenance` command that runs while the server is up uses the same store helper (same pragmas, same busy timeout, short transactions). A second server instance is refused by the PID check; `--maintenance restore` requires the server to be stopped |
+| One process | Only the server process writes the file. A CLI or `--maintenance` command that runs while the server is up uses the same store helper (same pragmas, same busy timeout, short transactions). A second server instance is refused by the PID check; `--maintenance restore` requires the server to be stopped (the WebUI and API restore run the same flow inside the running server, see "Restore Behavior") |
 | Location | A local disk only, never NFS, SMB or a FUSE mount. The `-wal` and `-shm` files stay next to the database. In Docker the data volume is a local volume or bind mount |
 | Backups | The SQLite online backup API or `VACUUM INTO` through the write handle, never `cp` of a live file |
 | Shutdown | After in-flight requests drain: `PRAGMA wal_checkpoint(TRUNCATE)`, then close `readDB`, then `writeDB` |
@@ -17119,9 +17122,9 @@ func extractContextFromPath(path string) (*Context, error) {
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/server/auth/register` | GET/POST | User registration |
-| `/server/auth/verify/{code}` | GET | Email verification |
-| `/server/auth/invite/user/{code}` | GET | User invite acceptance |
+| `/server/auth/register` | GET/POST | User registration (only when multi-user, PART 34, is activated) |
+| `/server/auth/verify/{code}` | GET | Email verification (only when multi-user, PART 34, is activated) |
+| `/server/auth/invite/user/{code}` | GET | User invite acceptance (only when multi-user, PART 34, is activated) |
 
 **Routing rule:** external identity login for both regular users and Server Admins lives under `/server/auth/*` in the browser and `/api/{api_version}/server/auth/*` in the API. Do NOT add parallel auth routes outside those scopes.
 
@@ -19617,6 +19620,7 @@ User-facing timestamps normally render the server's local timezone (`%B %d, %Y a
 
 When `tor.onion_address` is set, **clearnet** responses advertise the hidden service so Tor Browser shows the ".onion available" indicator and can upgrade automatically:
 
+- **Gate:** the header advertises the onion address, so it counts as publication: it is sent only when `tor.onion_address` is set AND `server.tor.expose` is `true` (default `false`: never sent).
 - Send `Onion-Location: http://{onion_address}{request_path}` on clearnet **HTML document** responses only (2xx, top-level navigations) — never on the onion's own responses, never on API/JSON responses, never on static assets or redirects.
 - The value is built from `tor.onion_address` (never the clearnet host) and always uses `http://` (see "Tor HTTP Semantics"); construct it with `BuildURL` against the onion host so the request path and query are preserved.
 - An equivalent `<meta http-equiv="onion-location" content="http://{onion_address}{request_path}">` in the HTML `<head>` is acceptable where a response header cannot be set; do not send both.
@@ -21297,7 +21301,7 @@ type StatsInfo struct {
 | **Registry, not hand-coding** | Each data set registers itself once at load time: `health.Register(key, critical, fn)`. `buildHealthResponse()` iterates the registry — adding a data set MUST NOT require editing the health handler |
 | **Values** | `ok` = loaded, parsed, non-empty, and within its maximum age · `degraded` = loaded but stale (update failing, past its max age) or running on the last known good copy · `error` = missing, empty, or unparseable with no usable copy |
 | **Disabled features** | A data set whose feature is disabled is OMITTED from `checks` (never reported as `ok` or `error`) |
-| **Aggregation** | `error` on `database` or `disk` → `unhealthy`. A dataset check at `degraded` or `error` → `degraded`, unless it was registered `critical` (the app cannot do its core job without it; downloaded datasets such as GeoIP, blocklists and CVE data and third-party upstreams such as search engines are never critical, "Startup Never Fails") → `unhealthy` |
+| **Aggregation** | `error` on `database` or `disk` → `unhealthy`. A dataset check at `degraded` → `degraded`, whether or not it is `critical`. A dataset check at `error` → `degraded`, unless it was registered `critical` (the app cannot do its core job without it; downloaded datasets such as GeoIP, blocklists and CVE data and third-party upstreams such as search engines are never critical, "Startup Never Fails"), which makes the service `unhealthy` |
 | **Overlay networks** | A Tor or I2P check at `degraded` → overall `degraded`. It is never `critical` and never makes the overall status `unhealthy` (see "Overlay Network Health") |
 | **Stable keys** | `{kind}_{id}` is a stable snake_case identifier — NEVER a file path, URL, or filename (public-safe; see Security) |
 | **Order** | Core checks first (`database`, `cache`, `disk`, `scheduler`), then `tor`, `i2p`, then dataset checks in registration order. JSON emits keys in exactly this order (custom marshaller — never an unordered map) |
@@ -22000,7 +22004,7 @@ When not in cluster mode:
 |----------|-----------|-----------|------------|-----------------------------|---------|
 | `disabled` | `false` | `false` | empty | omitted | The network is not active on this instance: no `tor` binary (Tor), or I2P not enabled (the resolved `server.i2p.enabled` is false) or no provider found (I2P) |
 | `starting` | `true` | `false` | empty | `ok` | The provider was launched and is bootstrapping or building tunnels |
-| `healthy` | `true` | `true` | the address | `ok` | Serving at `hostname` |
+| `healthy` | `true` | `true` | the address while `expose` is `true`, otherwise empty | `ok` | Serving at `hostname` |
 | `unavailable` | `true` | `false` | empty | `degraded` | Active and the provider exists, but it is not serving: failed to start, bootstrap timeout, a directory permission problem, or the provider exited |
 
 - **`enabled` means "active on this instance", not "currently running".** Tor: a `tor` binary was found (there is no toggle). I2P: `server.i2p.enabled` is true AND a provider was found.
@@ -22325,11 +22329,13 @@ Before adding ANY route, verify:
 
 **Admin routes for managing OTHER users use `/server/{admin_path}/users/{id}`:**
 
-| Route | Description |
-|-------|-------------|
-| `GET /api/{api_version}/server/{admin_path}/users` | List all users (admin) |
-| `GET /api/{api_version}/server/{admin_path}/users/{id}` | View specific user (admin) |
-| `PATCH /api/{api_version}/server/{admin_path}/users/{id}` | Edit specific user (admin) |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/{api_version}/server/{admin_path}/users` | GET | List all users (admin; only when multi-user, PART 34, is activated) |
+| `/api/{api_version}/server/{admin_path}/users` | POST | Create a user record (admin; only when PART 34 is activated) |
+| `/api/{api_version}/server/{admin_path}/users/{id}` | GET | View a specific user (admin; only when PART 34 is activated) |
+| `/api/{api_version}/server/{admin_path}/users/{id}` | PATCH | Edit a specific user (admin; only when PART 34 is activated) |
+| `/api/{api_version}/server/{admin_path}/users/{id}` | DELETE | Delete a user (admin; only when PART 34 is activated) |
 
 ### Org Routes - Slug Required
 
@@ -23205,7 +23211,7 @@ func renderNoJSHTML(w http.ResponseWriter, data interface{}) {
 | **Optional routes** | The embedded build-time spec is the full SUPERSET of routes, and every route that depends on a flag or a setting (the root aliases, optional well-known files, optional features) carries `x-mounted-when` naming its condition (for example the setting that enables the feature); INTERNAL routes (metrics, `/debug/*`, Tor control) are never in the OpenAPI document, embedded or served. At startup the server derives the SERVED spec from the embedded one by removing every operation whose condition is false for this run, so the spec a client reads always matches the routes that are actually mounted. The drift test compares the superset with the route table |
 | **JSON only** | OpenAPI spec uses JSON format only (NO YAML) |
 | **Source of truth** | AI.md defines the TEMPLATE routes and the `### API routes` inventory in IDEA.md defines EVERY project-defined route, including any native or compatibility API of the project; together they are the API CONTRACT: routes, methods, auth and shapes. AI.md never enumerates project routes. The code and its annotations implement that contract, and the specs are GENERATED from the code, so they are artifacts, never edited by hand. Drift is detected by a test with three legs: the generated OpenAPI route and method list, the router's registered routes, and the union of the AI.md template routes and the IDEA.md `### API routes` inventory. A route present in one leg and missing from another fails the build, naming the route and the missing place; a project whose IDEA.md has no `### API routes` subsection fails with that message instead of passing vacuously. A deliberate change is made in AI.md or IDEA.md first, then the code, then the specs are regenerated |
-| **Template route inventory** | The template leg of the drift test is read from the project's own `AI.md` at test time, deterministically: a template route is a row of a Markdown table whose header row has a path column (`Endpoint` or `Path`) and a method column (`Method` or `Methods`), in any order and with any other columns (rows are read by those headers, never by column position): the path cell is exactly one backticked path starting with `/` and the method cell lists one or more HTTP methods (`GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`) separated by `/` or `,` (each method of the path is its own route), and the method is always explicit (a row without one is not a route). A row whose method cell is `ALL` and whose path ends in `/*` declares a PREFIX, not routes (the admin panel and admin API rows): the drift test does not expand it, the concrete routes under the prefix are the rows of the tables that define them (each with explicit methods), and the test requires at least one registered route under the prefix and every registered route under it to be such a row; `ALL` is valid only on a prefix row. Route classes: a row whose path starts with `/api/`, or is a root alias of an API route (`/healthz`, `/mcp`), is an API route and is compared with all three legs; every other row (`/`, `/server/healthz`, the Swagger and GraphiQL pages, the admin pages, the preferences forms) is a PAGE route, compared only with the router's registered routes and the page registry, and expected in NONE of the OpenAPI document. INTERNAL is a class of path, not a marker on each row: every path of the INTERNAL services (metrics with its `/metrics`, `/api/metrics` and versioned aliases, the `/debug/*` routes, the Tor control routes; the INTERNAL rows of the PART 1 endpoint-pattern table) counts as a template route when it has a row, and the drift test expects it in the route table and in NONE of the OpenAPI document, llms.txt, GraphQL and MCP; a path cell with an alias lists each path as its own route; optional-segment brackets such as `/metrics[/{service}]` expand to two routes, the path without and the path with the bracketed segment. A row in a fenced code block or in a table introduced as an illustrative example (for example the generic REST row `/api/{api_version}/{resource}`) is not a template route. `{api_version}` is the API version in use, `{admin_path}` the configured admin path, any other `{name}` segment matches a path parameter. A row under a section marked OPTIONAL counts only when the project enables that feature (its `x-mounted-when` condition). A table without a method column (the frontend page lists, static files, the well-known support matrix) is not a route inventory either: those are `GET`/`HEAD` pages covered by the page registry and conformance tests, not by the drift parser, and any route that accepts a `POST` form is listed in an inventory table with an explicit `POST` row. A route table in any other form is not a route inventory: a new template route is added to AI.md in this form, and nothing is copied into a project |
+| **Template route inventory** | The template leg of the drift test is read from the project's own `AI.md` at test time, deterministically: a template route is a row of a Markdown table whose header row has a path column (`Endpoint`, `Path` or `Route`) and a method column (`Method` or `Methods`), in any order and with any other columns (rows are read by those headers, never by column position): the path cell is exactly one backticked path starting with `/` and the method cell lists one or more HTTP methods (`GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`) separated by `/` or `,` (each method of the path is its own route), and the method is always explicit (a row without one is not a route). A row whose method cell is `ALL` and whose path ends in `/*` declares a PREFIX, not routes (the admin panel and admin API rows): the drift test does not expand it, the concrete routes under the prefix are the rows of the tables that define them (each with explicit methods), and the test requires at least one registered route under the prefix and every registered route under it to be such a row; `ALL` is valid only on a prefix row. Route classes: a row whose path starts with `/api/`, or is a root alias of an API route (`/healthz`, `/mcp`), is an API route and is compared with all three legs (an INTERNAL path, below, is compared with the router and the inventory only, never with the OpenAPI leg); every other row (`/`, `/server/healthz`, the Swagger and GraphiQL pages, the admin pages, the preferences forms) is a PAGE route, compared only with the router's registered routes and the page registry, and expected in NONE of the OpenAPI document. INTERNAL is a class of path, not a marker on each row: every path of the INTERNAL services (metrics with its `/metrics`, `/api/metrics` and versioned aliases, the `/debug/*` routes, the Tor control routes; the INTERNAL rows of the PART 1 endpoint-pattern table) counts as a template route when it has a row, and the drift test expects it in the route table and in NONE of the OpenAPI document, llms.txt, GraphQL and MCP; a path cell with an alias lists each path as its own route; optional-segment brackets such as `/metrics[/{service}]` expand to two routes, the path without and the path with the bracketed segment. A row in a fenced code block or in a table introduced as an illustrative example (for example the generic REST row `/api/{api_version}/{resource}`) is not a template route. `{api_version}` is the API version in use, `{admin_path}` the configured admin path, a leading `{base}` (the Scoped Agents API table only) is replaced by the Base Route of each enabled scope (admin always, user with PART 34, org with PART 35), any other `{name}` segment matches a path parameter. A row under a section marked OPTIONAL counts only when the project enables that feature (its `x-mounted-when` condition); a row whose description names its own condition (an alias that exists `when server.healthz.root.enabled is true`) is optional in the same way and carries that condition as its `x-mounted-when`. A table without a method column (the frontend page lists, static files, the well-known support matrix) is not a route inventory either: those are `GET`/`HEAD` pages covered by the page registry and conformance tests, not by the drift parser, and any route that accepts a `POST` form is listed in an inventory table with an explicit `POST` row. A route table in any other form is not a route inventory: a new template route is added to AI.md in this form, and nothing is copied into a project |
 | **Match site theme** | Both UIs styled to match site theme (light/dark/auto) |
 | **Standardized locations** | ALWAYS `src/swagger/` and `src/graphql/` (NEVER in root `.`) |
 
@@ -25256,7 +25262,7 @@ func URLNormalizeMiddleware(next http.Handler) http.Handler {
 | `/api/{api_version}/users/` | `/api/{api_version}/users` | 301 redirect (GET/HEAD; 308 for other methods) |
 | `/users` | `/users` | No redirect (canonical) |
 | `/` | `/` | No redirect (root exception) |
-| `/static/css/style.css` | `/static/css/style.css` | No redirect (file) |
+| `/static/css/common.css` | `/static/css/common.css` | No redirect (file) |
 | `/dir/index.html` | `/dir/index.html` | No redirect (file) |
 
 **Why No Trailing Slash:**
@@ -27186,7 +27192,9 @@ const CACHE_NAME = `{app_name}-cache-${CACHE_VERSION}`;
 // URLs MUST carry the same ?v= stamp the asset() helper puts in pages, or page requests
 // never match these entries. HTML ('/') is never precached - it is always network-first.
 const PRECACHE_ASSETS = [
-  '/static/css/app.css?v={asset_stamp}',
+  '/static/css/common.css?v={asset_stamp}',
+  '/static/css/public.css?v={asset_stamp}',
+  '/static/css/components.css?v={asset_stamp}',
   '/static/js/app.js?v={asset_stamp}',
   '/static/icons/icon-192.png?v={asset_stamp}',
   '/static/icons/icon-512.png?v={asset_stamp}'
@@ -28271,7 +28279,9 @@ async function requestPersistentStorage() {
   <meta name="apple-mobile-web-app-title" content="{app_name}">
 
   <title>{app_name}</title>
-  <link rel="stylesheet" href="{{ asset "css/app.css" }}">
+  <link rel="stylesheet" href="{{ asset "css/common.css" }}">
+  <link rel="stylesheet" href="{{ asset "css/public.css" }}">
+  <link rel="stylesheet" href="{{ asset "css/components.css" }}">
 </head>
 <body>
   <!-- Offline indicator -->
@@ -28301,7 +28311,9 @@ async function requestPersistentStorage() {
 ├── sw.js                         # Service worker
 ├── static/
 │   ├── css/
-│   │   └── app.css
+│   │   ├── common.css
+│   │   ├── public.css
+│   │   └── components.css
 │   ├── js/
 │   │   └── app.js                # Includes SW registration
 │   ├── icons/
@@ -39789,6 +39801,7 @@ POST /api/{api_version}/server/{admin_path}/backup/restore
 | **Restore to same server** | Overwrites current config and database |
 | **Restore to new server** | Primary admin must re-authenticate |
 | **Version mismatch** | Warning shown, schema updates applied if needed |
+| **Restore while serving (WebUI and API)** | The server verifies the archive, enters `maintenance` (requests get `503`, health reports it), stops its scheduler and writers, runs the same restore flow as `--maintenance restore`, then restarts itself in place (the update-restart mechanism); the request that started it answers `202`. It needs the same admin authority as any admin mutation plus a typed confirmation. `--maintenance restore` is the offline form: it runs with the server stopped |
 
 ### Primary Admin Re-Setup on Restore
 
@@ -41924,7 +41937,7 @@ func (ws *windowsService) Execute(args []string, r <-chan svc.ChangeRequest, s c
 
 # PART 26: MAKEFILE
 
-**Seven core targets (`dev`, `local`, `build`, `test`, `release`, `beta`, `docker`). DO NOT ADD MORE.** The only other permitted targets are `clean`, a housekeeping target that removes `binaries/` and `releases/` and builds nothing, and `release-check`, an internal helper that is the first prerequisite of `release`, validates the version and builds nothing (it is never the entry point of a workflow). There is no `all` target and none is required.
+**Seven core targets (`dev`, `local`, `build`, `test`, `release`, `beta`, `docker`). DO NOT ADD MORE.** The only other permitted targets are `clean`, a housekeeping target that removes `binaries/` and `releases/` and builds nothing, and `release-check`, an internal helper that is the first prerequisite of `release`, validates the version and builds nothing (it is never the entry point of a workflow). There is no `all` target and none is required. A CI job named `lint` (or `secret-scan`, `vuln-scan`) is a job of the CI file and runs its tools directly in the toolchain container: it is not a Makefile target and adds none.
 
 ## Targets
 
@@ -42333,10 +42346,10 @@ docker:
 	@docker buildx create --name multiarch-builder --use 2>/dev/null || \
 		docker buildx use multiarch-builder
 
-	# Build multi-arch locally (no push — pushing is CI/CD's responsibility)
+	# Build the host platform and load it into the local image store (no push and no multi-arch: both are CI/CD's responsibility)
 	@docker buildx build \
 		-f docker/Dockerfile \
-		--platform linux/amd64,linux/arm64 \
+		--load \
 		--build-arg VERSION="$(VERSION)" \
 		--build-arg BUILD_DATE="$(BUILD_DATE)" \
 		--build-arg BUILD_EPOCH="$(BUILD_EPOCH)" \
@@ -42478,7 +42491,7 @@ All Docker builds use persistent Go module caching to avoid re-downloading depen
 1. Uses `docker buildx` for multi-arch builds
 2. Multi-stage Dockerfile handles Go compilation (no pre-built binaries)
 3. Context is project root, Dockerfile at `docker/Dockerfile`
-4. Builds for `linux/amd64` and `linux/arm64`
+4. Builds the host platform only (`--load`), so the image check can run it; multi-arch publishing is CI/CD's job
 5. Tags as `$REGISTRY:{version}` and `:latest` — no push (pushing is CI/CD's responsibility)
 6. Passes VERSION, BUILD_DATE, BUILD_EPOCH, COMMIT_ID as build args
 7. Layer caching: Go modules cached in builder stage
@@ -44037,8 +44050,8 @@ services:
       PORT: 80
       TZ: ${TZ:-America/New_York}
     volumes:
-      - ./volumes/config:/config:z
-      - ./volumes/data:/data:z
+      - ./volumes/config:/config
+      - ./volumes/data:/data
     ports:
       # Development: accessible from all interfaces, no 172.17.0.1 bind
       - "64580:80"
@@ -44182,8 +44195,8 @@ services:
     volumes:
       # CRITICAL: ./volumes/ must resolve to $TEMP_DIR/volumes/, NOT project directory
       # This file MUST be copied to a temp directory before running (unless invoked via tests/ scripts)
-      - ./volumes/config:/config:z
-      - ./volumes/data:/data:z
+      - ./volumes/config:/config
+      - ./volumes/data:/data
     ports:
       - "172.17.0.1:64581:80"
     healthcheck:
@@ -44805,12 +44818,12 @@ jobs:
             echo "::error::Tag '$tag' contains whitespace or control characters and is not a valid GitHub tag name."
             exit 1
           fi
-          # Delete existing tag (local + remote) then recreate at current HEAD
-          git tag -d "$tag" 2>/dev/null || true
-          git push origin ":refs/tags/$tag" 2>/dev/null || true
-          git tag "$tag"
-          git push origin "refs/tags/$tag"
-          echo "Tag '$tag' ensured at $(git rev-parse HEAD)"
+          # the tag that triggered this run exists already and is never deleted or moved: verify that it points at the checked-out commit
+          if [ "$(git rev-parse "refs/tags/$tag^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::Tag '$tag' does not point at the checked-out commit."
+            exit 1
+          fi
+          echo "Tag '$tag' verified at $(git rev-parse HEAD)"
 
       - name: Download all artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
@@ -46058,12 +46071,12 @@ jobs:
             echo "::error::Tag '$tag' contains whitespace or control characters and is not a valid tag name."
             exit 1
           fi
-          # Delete existing tag (local + remote) then recreate at current HEAD
-          git tag -d "$tag" 2>/dev/null || true
-          git push origin ":refs/tags/$tag" 2>/dev/null || true
-          git tag "$tag"
-          git push origin "refs/tags/$tag"
-          echo "Tag '$tag' ensured at $(git rev-parse HEAD)"
+          # the tag that triggered this run exists already and is never deleted or moved: verify that it points at the checked-out commit
+          if [ "$(git rev-parse "refs/tags/$tag^{commit}")" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::Tag '$tag' does not point at the checked-out commit."
+            exit 1
+          fi
+          echo "Tag '$tag' verified at $(git rev-parse HEAD)"
 
       - name: Download all artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
@@ -49805,7 +49818,7 @@ test:
 
 ### How to Achieve the Coverage Gates (≥60% unit, 100% endpoints)
 
-**0. Keep the process entry thin and testable.** The unit gate counts every package, the root `src` package included, so orchestration left in `main()` drags the percentage down while only the compiled binary can reach it. `src/main.go` holds only `main()`: it calls `config.Load(os.Args[1:])` (flag parsing and configuration building live in `src/config`, which unit tests reach), copying the build metadata `Version`, `CommitID`, `BuildEpoch` and `OfficialSite` from `src/version.go` into the result, and then calls `app.Run(ctx, cfg) error`, where `cfg` is the `config.ServerConfig` value, the aggregate runtime configuration built by `config.Load` (the naming rule's `ServerConfig`): it carries every section of the merged configuration (server, web, search, engine and the area-file settings of PART 5), so `app.Run` needs nothing else and `app` is the package `github.com/{project_org}/{internal_name}/src/app`, which never imports `main`. `app.Run` (startup, signal handling, graceful shutdown) is in that package, which unit tests reach: the test calls `run` with a cancelable context and a listener on `127.0.0.1:0`, waits for the ready signal, makes one request, cancels the context and asserts a clean return. Phase 2 still tests the compiled binary; its coverage never counts toward the Phase 1 percentage.
+**0. Keep the process entry thin and testable.** The unit gate counts every package, the root `src` package included, so orchestration left in `main()` drags the percentage down while only the compiled binary can reach it. `src/main.go` holds only `main()`: it calls `config.Load(os.Args[1:])` (flag parsing and configuration building live in `src/config`, which unit tests reach), copying the build metadata `Version`, `CommitID`, `BuildEpoch` and `OfficialSite` from `src/version.go` into the result, and then calls `app.Run(ctx, cfg) error`, where `cfg` is the `config.ServerConfig` value, the aggregate runtime configuration built by `config.Load` (the naming rule's `ServerConfig`): it carries every section of the merged configuration that the project defines (server and web, the project's own sections such as `search` or `engine` only when IDEA.md defines them, and the area-file settings of PART 5), so `app.Run` needs nothing else and `app` is the package `github.com/{project_org}/{internal_name}/src/app`, which never imports `main`. `app.Run` (startup, signal handling, graceful shutdown) is in that package, which unit tests reach: the test calls `run` with a cancelable context and a listener on `127.0.0.1:0`, waits for the ready signal, makes one request, cancels the context and asserts a clean return. Phase 2 still tests the compiled binary; its coverage never counts toward the Phase 1 percentage.
 
 **1. Test All Code Paths:**
 ```go
@@ -49900,7 +49913,7 @@ test_endpoint GET "/api/{api_version}/jokes/{id}"
 
 # ADMIN API (with auth)
 test_endpoint GET "/api/{api_version}/server/{admin_path}/settings"
-test_endpoint PUT "/api/{api_version}/server/{admin_path}/settings"
+test_endpoint PATCH "/api/{api_version}/server/{admin_path}/settings"
 test_endpoint GET "/api/{api_version}/server/{admin_path}/logs"
 
 # At end: verify ALL endpoints were tested

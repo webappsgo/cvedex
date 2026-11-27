@@ -17,6 +17,19 @@ token and use these routes:
 | POST | `/api/v1/server/{admin_path}/network/i2p/regenerate` | Regenerate I2P destination and request startup |
 | GET | `/api/v1/server/{admin_path}/network/tor` | Read Tor status |
 
+The email settings and editable template catalogue are also restricted to the
+operator Bearer token. SMTP credentials are accepted only on writes and are
+never returned by reads:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET, PATCH | `/api/v1/server/{admin_path}/email` | Read sanitized SMTP settings or update relay settings and event preferences |
+| POST | `/api/v1/server/{admin_path}/email/test` | Send a real test message using sample template data |
+| GET | `/api/v1/server/{admin_path}/email/templates` | List available email templates |
+| GET, PUT | `/api/v1/server/{admin_path}/email/templates/{name}` | Read or validate and save a template |
+| POST | `/api/v1/server/{admin_path}/email/templates/{name}/reset` | Remove a custom override and restore the embedded template |
+| POST | `/api/v1/server/{admin_path}/email/templates/{name}/preview` | Render supplied template data without sending email |
+
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/v1` | API identity and health link |

@@ -20,6 +20,16 @@ status, settings, metrics, security, backup, and audit-log pages. Active
 session addresses, durations, activity timestamps, and browser details are
 not shown.
 
+## Email and templates
+
+The protected email page is `/server/{admin_path}/email`. It checks a
+configured SMTP relay at startup and after settings changes; an unavailable
+relay disables email delivery without stopping the server. SMTP credentials
+are stored in `secrets.yml`, while public relay settings live in `server.yml`.
+Operators can edit or reset embedded email templates, choose event email
+preferences, and send a real test message. The API equivalents are listed in
+the [API reference](api.md#json-api); API reads never return the SMTP password.
+
 ## Settings and security
 
 The settings page is `/server/{admin_path}/settings`. It configures the
@@ -101,14 +111,17 @@ are listed above and use the operator Bearer token; browser controls use the
 authenticated session and CSRF tokens.
 
 The scheduler registers `cve_update`, `geoip_update`, `session_cleanup`, `token_cleanup`,
-`healthcheck_self`, and `update_check`. It also registers daily/hourly backups
+`security_cleanup`, `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
 when the backup runner is available, Tor health when Tor is installed, and I2P
 health when I2P is enabled. `token_cleanup` removes revoked or expired
 administrator tokens and used or expired password-reset and email-verification
 tokens. GeoIP downloads run at startup when the local database is stale, then
-weekly; the admin page is `/server/{admin_path}/network/geoip`. TLS renewal,
-blocklist updates, security cleanup, keyserver retries, log rotation, and
-cluster heartbeats do not have task runners yet.
+weekly; the admin page is `/server/{admin_path}/network/geoip`.
+`security_cleanup` currently prunes administrator notifications only. TLS
+renewal, blocklist updates, security-report/key retirement cleanup, keyserver
+retries, log rotation, and cluster heartbeats are not implemented yet; their
+configuration entries do not imply that work runs. These limitations are
+tracked in the project implementation backlog.
 Tor and I2P processes are managed separately from these scheduler callbacks;
 see [Integrations](integrations.md#tor-and-i2p-overlays).
 
