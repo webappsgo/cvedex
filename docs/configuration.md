@@ -31,14 +31,12 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `METRICS_DURATION_BUCKETS` | Built-in seconds buckets | Comma-separated HTTP duration histogram buckets |
 | `METRICS_SIZE_BUCKETS` | Built-in byte buckets | Comma-separated HTTP request/response size histogram buckets |
 | `BACKUP_DIR` | System backup directory when writable; otherwise mode-specific fallback | Backup destination directory |
-| `BACKUP_ENABLED` | `true` | Enable scheduled backups |
-| `BACKUP_HOURLY_ENABLED` | `false` | Enable incremental hourly backups |
 | `CLI_BINARY_DIR` | `{DATA_DIR}/cli` | Directory scanned for signed-off CLI release files exposed by autodiscovery |
 | `CLI_BINARY_DOWNLOAD_REQUIRE_AUTH` | `false` | Require authentication for CLI binary downloads |
 | `CLI_MIN_VERSION` | Empty | Minimum supported CLI version published by autodiscovery |
 | `PID_FILE` | OS-specific | Server PID file path |
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
-| `I2P_ENABLED` | `false` on hosts; `true` in containers | Enable the optional I2P eepsite |
+| `I2P_ENABLED` | `false` on hosts; `true` in containers | I2P runtime setting; process/listener integration is not currently available |
 | `SECURE_COOKIES` | `false` | Require Secure on admin session cookies |
 | `ADMIN_PATH` | `administration` | Admin panel path segment |
 | `MODE` | `production` | Application mode |
@@ -51,6 +49,7 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `DATA_URL` | `https://github.com/webappsgo/cvedex/releases/download/data-latest/cvedex-data.json.gz` | HTTPS URL for the generated dataset |
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
 | `REFRESH_INTERVAL` | `24h` | Dataset refresh period; minimum `1m` |
+| `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
 The YAML file uses the same namespaced keys, for example:
 
@@ -76,6 +75,19 @@ server:
     disk_threshold: 90
     encryption:
       enabled: false
+  scheduler:
+    timezone: America/New_York
+    catch_up_window: 1h
+    tasks:
+      cve_update:
+        schedule: "0 5 * * *"
+        enabled: true
+      backup_daily:
+        schedule: "0 2 * * *"
+        enabled: true
+      backup_hourly:
+        schedule: "@hourly"
+        enabled: false
   database:
     sqlite:
       path: /var/lib/casapps/cvedex/db
@@ -101,7 +113,18 @@ server:
     notify_targets: []
   dnssec:
     enabled: true
+  ssl:
+    enabled: false
+    cert: /etc/casapps/cvedex/ssl/server.crt
+    key: /etc/casapps/cvedex/ssl/server.key
+    min_version: TLS1.2
 ```
+
+The TLS listener currently supports a manually supplied certificate and key
+through YAML (`server.ssl.enabled`, `server.ssl.cert`, `server.ssl.key`, and
+`server.ssl.min_version`). The certificate and key must both be configured;
+the minimum version is `TLS1.2` or `TLS1.3`. ACME issuance and renewal are not
+available yet. Keep the private key in a protected configuration path.
 
 The HTTP router accepts requests under the configured `baseurl` and prefixes
 its page links, static assets, redirects, and admin routes. When deployed behind
@@ -123,8 +146,12 @@ The same file stores independently generated `mtr_` credentials under
 does not print these tokens; read them from the owner-only secrets file and
 send them only in the metrics `Authorization` header.
 
-Scheduled backups default to 02:00 UTC. Configure the cron expression with
-`server.backup.schedule`; retention accepts a maximum daily count, weekly,
+Scheduled backups default to 02:00 in the scheduler timezone. The current
+timezone default is `America/New_York`; override it with `TZ` or
+`server.scheduler.timezone`. Configure the daily and hourly task schedules with
+`server.scheduler.tasks.backup_daily.schedule` and
+`server.scheduler.tasks.backup_hourly.schedule`;
+retention accepts a maximum daily count, weekly,
 monthly, and yearly full-backup counts, a total size limit, and a disk-use
 threshold. Set `server.backup.encryption.enabled` to require encrypted
 scheduled archives. The encryption password is stored encrypted in the secrets

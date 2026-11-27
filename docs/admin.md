@@ -60,6 +60,26 @@ cookie does not authenticate API requests. The implemented JSON routes are:
 | GET | `/api/v1/server/{admin_path}/logs/audit` | Search and page through audit entries, or export filtered results |
 | GET, PATCH, POST | `/api/v1/server/{admin_path}/backup` | Read settings/history, update settings, or create a backup |
 | POST | `/api/v1/server/{admin_path}/backup/restore` | Verify and restore a named backup |
+| GET | `/api/v1/server/{admin_path}/scheduler` | List registered scheduled tasks and their persisted state |
+| GET, PATCH | `/api/v1/server/{admin_path}/scheduler/{id}` | Read a task or update its enabled state and schedule |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/run` | Run an enabled task immediately |
+| GET | `/api/v1/server/{admin_path}/scheduler/{id}/history` | Read recent task executions |
+
+## Scheduler
+
+The authenticated task page is `/server/{admin_path}/scheduler`. It displays
+each registered task's schedule, enabled state, last and next run, recent
+result, and execution history. Operators can enable or disable a task, change
+its schedule, open the history page, or run it immediately. The API routes are
+listed above and use the operator Bearer token.
+
+The current scheduler registers `cve_update`, `session_cleanup`,
+`token_cleanup`, `healthcheck_self`, and daily/hourly backups when the backup
+runner is available. `token_cleanup` removes revoked or expired administrator
+tokens and used or expired password-reset and email-verification tokens. The
+catalogue still lacks required runners for TLS renewal, GeoIP, blocklists,
+security cleanup, keyserver retries, update checks, Tor, I2P, and cluster
+heartbeats; those tasks are not available to run yet.
 
 ## Audit log
 
@@ -83,7 +103,9 @@ The browser interface is `/server/{admin_path}/backup`. It shows backup files
 and history, configures the schedule, retention, and encryption password, and
 can create or restore a backup.
 
-Scheduled backups default to 02:00 UTC. Hourly incrementals are disabled by
+Scheduled backups default to 02:00 in the scheduler timezone, which defaults
+to `America/New_York`. Set `server.scheduler.timezone` in YAML or override it
+with the `TZ` environment variable. Hourly incrementals are disabled by
 default. Retention can keep daily, weekly, monthly, and yearly full backups and
 apply a total-size limit. New backups are verified before old backups are
 removed. The restore path validates file names and archive contents, applies

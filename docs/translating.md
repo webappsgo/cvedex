@@ -10,6 +10,17 @@ the registry in `src/common/i18n/i18n.go`, preserve placeholders exactly, and
 add all CLDR plural categories declared for that locale. The i18n tests check
 message-key parity, metadata, placeholders, and plural categories.
 
+## Glossary
+
+Keep the operator credential term consistent across the interface. The current
+locale catalog uses these terms:
+
+| English | Spanish | French | German | Italian | Arabic |
+|---|---|---|---|---|---|
+| Operator token | Token de operador | Jeton opérateur | Betreibertoken | Token operatore | رمز المشغّل |
+| Regenerate operator token | Regenerar token de operador | Régénérer le jeton opérateur | Betreibertoken erneuern | Rigenera token operatore | إعادة إنشاء رمز المشغّل |
+| Rotate DNSSEC keys | Rotar claves DNSSEC | Renouveler les clés DNSSEC | DNSSEC-Schlüssel erneuern | Ruota le chiavi DNSSEC | تدوير مفاتيح DNSSEC |
+
 Server templates use `{{t .Lang "namespace.message"}}`. Resolve language from
 the supported `lang` query choice, consented preference cookie, and
 `Accept-Language` header, in that order. Unsupported query choices fall back to

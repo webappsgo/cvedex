@@ -30,6 +30,22 @@ dataset returns HTTP 503; an unknown CVE returns HTTP 404.
 
 Public server information is available at `/api/v1/server/about`, `/privacy`, `/contact`, `/help`, `/help/mcp`, `/terms`, `/dpo`, `/security`, `/security/policy`, and `/security/thanks`. The corresponding HTML pages are under `/server/`.
 
+## Browser pages and response formats
+
+The public pages and data pages are server-rendered. A browser receives HTML
+by default; `Accept: text/html` requests HTML explicitly.
+`Accept: application/json` returns the same JSON as the paired API route (for example,
+`/search` pairs with `/api/v1/search`). `Accept: text/plain`, or an HTTP tool
+User-Agent such as curl, receives a readable text conversion of the rendered
+page. Errors use the requested JSON, text, or HTML format as well. Text
+browsers that advertise HTML receive server-rendered HTML and do not need
+JavaScript for navigation or forms.
+
+The frontend health page at `/server/healthz` supports HTML, JSON, and plain
+text; `/api/v1/server/healthz` returns JSON by default and
+`/api/v1/server/healthz.txt` returns plain text. `/api/v1.txt` returns the API
+identity in plain text.
+
 Guest theme and consent settings are editable at `/server/preferences` and
 available as JSON at `/api/v1/server/preferences` (GET and CSRF-protected
 PATCH). The JSON API does not grant cookie consent; the visitor must make that
@@ -47,15 +63,16 @@ arguments.
 
 ## Model Context Protocol
 
-The HTTP MCP transport accepts JSON-RPC 2.0 POST requests at `/api/v1/server/mcp`,
-`/api/mcp`, and `/mcp`. Each request requires the operator Bearer token,
+The HTTP MCP transport is enabled and accepts JSON-RPC 2.0 POST requests at `/api/v1/server/mcp`,
+`/api/mcp`, and `/mcp`. The versioned route is canonical; the other two are
+aliases. Each request requires a supported Bearer token,
 `MCP-Protocol-Version: 2026-07-28`, a matching `Mcp-Method` header, and a
 matching protocol version in the JSON-RPC `_meta` object. The endpoint currently
 generates its tool catalogue from the OpenAPI route definitions and dispatches
-calls through the existing HTTP handlers. This implementation currently accepts
-the operator bearer token; scoped user and organization tokens are unavailable
-while PART 34 remains optional. That template conflict is recorded in
-`~/Projects/github/webappsgo/TODO.SERVER.md`.
+calls through the existing HTTP handlers. It accepts the operator token and
+the service-specific Prometheus, Grafana, or Loki metrics tokens. The tool list
+is restricted to the permissions attached to the supplied token. User and
+organization token types are not part of cvedex's product scope.
 
 ## Internal metrics
 
@@ -80,14 +97,14 @@ HTTP/DNS rate-limit outcomes. Runtime and CPU/memory/data-directory disk
 families follow `include_runtime` and `include_system`. The Loki service exposes
 only bounded recent structured logs after credential redaction.
 
-Admin settings and DNSSEC key rotation use the server operator token as an
-HTTP Bearer credential. See [Administration](admin.md) for the routes and
-first-run token handling. A browser session cookie does not authenticate API
-requests.
+Administrator API routes use the server operator token as an HTTP Bearer
+credential. Metrics routes use their corresponding service token. See
+[Administration](admin.md) for the routes and first-run token handling. A
+browser session cookie does not authenticate API requests.
 
 The host HTTP port is selected on first run and stored in `server.yml`. Set
-`CVEDEX_PORT=64580` when starting the service to use the port shown in the
-examples below.
+`CVEDEX_PORT=64580` or `PORT=64580` when starting the service to use the port
+shown in the examples below; `CVEDEX_PORT` takes precedence.
 
 ## Search example
 

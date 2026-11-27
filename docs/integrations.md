@@ -109,6 +109,13 @@ and `/api/graphql`. The browser explorer is served at
 `/api/v1/server/swagger`, its direct alias `/api/swagger`, and a browser
 reference at `/server/docs/swagger`; see the [API reference](api.md).
 
-MCP is disabled in this build. OAuth/OIDC, webhooks, email delivery, and
+The HTTP MCP transport is available at `/api/v1/server/mcp` and its aliases
+`/api/mcp` and `/mcp`. It accepts authenticated JSON-RPC 2.0 requests using an
+operator token or a service-specific metrics token; its tools reflect the
+permissions of that credential. OAuth/OIDC, webhooks, email delivery, and
 federation are not enabled. The supported external interfaces are authoritative
-DNS, the REST JSON API, and the read-only GraphQL API.
+DNS, the REST JSON API, read-only GraphQL, and authenticated MCP.
+
+Tor hidden-service and I2P eepsite runtime integration are not available in
+the current server implementation. Setting `I2P_ENABLED` changes the resolved
+configuration value but does not launch an I2P provider or listener.

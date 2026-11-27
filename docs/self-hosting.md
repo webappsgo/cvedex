@@ -9,6 +9,14 @@ setup, review transfer ACLs and NOTIFY targets, and publish the active DNSSEC
 DS record at the parent zone. DNS UDP and HTTP response rate limiting are
 enabled by default; tune them for the expected query volume.
 
+## HTTPS and overlay networks
+
+HTTPS is available with a manually supplied certificate and key using the
+`server.ssl` YAML settings. The listener enforces TLS 1.2 or newer. Certificate
+issuance, ACME challenges, and automated renewal are not yet implemented.
+Tor hidden-service and I2P eepsite process/listener integration is also not
+available yet; the `I2P_ENABLED` setting does not start an I2P provider.
+
 ## DNS secondary and DNSSEC
 
 The server signs zones offline when DNSSEC is enabled, serves AXFR/IXFR to

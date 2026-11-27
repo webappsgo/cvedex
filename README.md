@@ -17,10 +17,16 @@ cvedex serves CVE data through an authoritative DNS zone and a read-only HTTP ga
 - ACL-gated TCP AXFR/IXFR and best-effort NOTIFY for configured secondaries
 - JSON APIs for CVE detail and search, vendor and product lookup, KEV data, and BIND-format zone download
 - Read-only GraphQL API with a browser query form at `/server/docs/graphql`
+- Authenticated MCP JSON-RPC transport with operator and service-scoped metrics tokens
 - Authenticated Prometheus metrics, a Grafana dashboard export, and a bounded Loki log stream
 - Server-rendered public information, CVE detail, and catalog pages
 - `cvedex-cli` for CVE lookup, search, dataset generation, data sync, and zone download
 - YAML and environment-based server configuration
+
+## Languages
+
+The web interface currently supports six languages: English, Spanish, French,
+German, Italian, and Arabic. Arabic uses right-to-left layout.
 
 DNS UDP and HTTP rate limiting are enabled by default. DNSSEC keys are created under the configured data directory and restricted to the service account. Transfers default to loopback-only access. See [Security](docs/security.md), [DNSSEC](docs/dnssec.md), and [Administration](docs/admin.md) for operator guidance.
 
@@ -29,11 +35,14 @@ DNS UDP and HTTP rate limiting are enabled by default. DNSSEC keys are created u
 All Go builds use Docker with the `casjaysdev/go:latest` toolchain:
 
 ```sh
-make local
+mkdir -p "${TMPDIR:-/tmp}/casapps"
+BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
+make local BINDIR="$BUILD_DIR" RELDIR="$BUILD_DIR/releases"
 make test
 ```
 
-This creates `binaries/cvedex` and `binaries/cvedex-cli`.
+The binaries are written to `$BUILD_DIR/cvedex` and `$BUILD_DIR/cvedex-cli`.
+The test target builds its own temporary binary and does not use these files.
 
 ## Generate a dataset
 
@@ -42,7 +51,8 @@ The scheduled GitHub workflow publishes the generated dataset to the `data-lates
 ```sh
 mkdir -p "${TMPDIR:-/tmp}/casapps"
 ARTIFACT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
-cvedex-cli data generate --source-dir ./cvelistV5 --output "$ARTIFACT_DIR/cvedex-data.json.gz"
+git clone --depth 1 https://github.com/CVEProject/cvelistV5.git "$ARTIFACT_DIR/cvelistV5"
+cvedex-cli data generate --source-dir "$ARTIFACT_DIR/cvelistV5" --output "$ARTIFACT_DIR/cvedex-data.json.gz"
 ```
 
 This writes a `.sha256` file next to the dataset. Keep generated data in the temporary artifact directory rather than the source tree. The server downloads the published dataset on first start and refreshes daily. Set `DATA_URL` and `CHECKSUM_URL` to use a mirror.
@@ -51,9 +61,11 @@ This writes a `.sha256` file next to the dataset. Keep generated data in the tem
 
 ```sh
 mkdir -p "${TMPDIR:-/tmp}/casapps"
+BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
+make local BINDIR="$BUILD_DIR" RELDIR="$BUILD_DIR/releases"
 DATA_DIR=$(mktemp -d "${TMPDIR:-/tmp}/casapps/cvedex-XXXXXX")
 DATA_DIR="$DATA_DIR" CVEDEX_PORT=64580 DNS_ADDRESS=127.0.0.1 DNS_PORT=1053 \
-  ./binaries/cvedex --mode development
+  "$BUILD_DIR/cvedex" --mode development
 ```
 
 The native HTTP port is selected once from 64000–64999 and saved in `server.yml`; containers listen on port 80. DNS uses port 53 on UDP and TCP. Override `DNS_PORT` for local development as shown.

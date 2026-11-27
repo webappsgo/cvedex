@@ -21,6 +21,7 @@ curl -q -LSsf -H 'Accept: application/json' http://127.0.0.1:64580/api/v1/cves/C
 - HTTP redirects from loaded CVE hostnames to their canonical upstream pages
 - HTTP JSON APIs for CVE lookup, search, reverse vendor/product lookups, KEV data, and zone download
 - Read-only GraphQL with a browser explorer and OpenAPI documentation with a browser reference
+- Authenticated MCP JSON-RPC transport for operator and metrics-scoped integrations
 - Server-rendered pages for CVEs, search, catalogs, and service information
 - `cvedex-cli` for data generation, lookup, search, sync, and zone download
 
@@ -36,5 +37,9 @@ and [Administration](admin.md) for operator guidance.
 - [DNS record reference](dns-records.md)
 - [HTTP API](api.md)
 - [CLI reference](cli.md)
+- [Administration](admin.md)
+- [Security](security.md)
+- [Integrations](integrations.md)
 - [Self-hosting](self-hosting.md)
 - [Development](development.md)
+- [Translating](translating.md)
