@@ -38,6 +38,13 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `PID_FILE` | OS-specific | Server PID file path |
 | `BASEURL` | `/` | HTTP URL path prefix (`server.baseurl` in YAML) |
 | `I2P_ENABLED` | `false` on server machines; `true` in containers | Enable the managed I2P eepsite process and loopback HTTP backend |
+| `SMTP_HOST` | Empty | SMTP relay hostname; email delivery stays disabled when unset |
+| `SMTP_PORT` | `587` | SMTP relay port |
+| `SMTP_USERNAME` | Empty | SMTP authentication username |
+| `SMTP_PASSWORD` | Empty | SMTP password; stored in the private `secrets.yml` file |
+| `SMTP_TLS` | `auto` | SMTP TLS mode: `auto`, `starttls`, `tls`, or `none` |
+| `SMTP_FROM_NAME` | Empty | Sender display name |
+| `SMTP_FROM_EMAIL` | Empty | Sender email address |
 | `SECURE_COOKIES` | `false` | Require Secure on admin session cookies |
 | `PRIVACY_DATA_SOLD` | `false` | Set `server.privacy.data.sold`; enables the CCPA opt-out controls and cookie behavior |
 | `ADMIN_PATH` | `administration` | Admin panel path segment |
@@ -120,7 +127,7 @@ server:
   security:
     allowlist:
       - cidr: 192.0.2.10
-        description: "Monitoring host"
+        description: "Monitoring address"
     blocklists:
       enabled: true
       auto_update: true
@@ -258,8 +265,9 @@ through YAML (`server.ssl.enabled`, `server.ssl.cert`, `server.ssl.key`, and
 the minimum version is `TLS1.2` or `TLS1.3`. ACME issuance and renewal are not
 available yet. Keep the private key in a protected configuration path.
 
-I2P settings live under `server.i2p`. The `I2P_ENABLED` environment variable
-overrides `server.i2p.enabled`. On bare machines I2P defaults to disabled; in
+I2P settings live under `server.i2p`. The `--i2p` command-line flag enables the
+provider; otherwise the `I2P_ENABLED` environment variable overrides
+`server.i2p.enabled`. On bare machines I2P defaults to disabled; in
 containers it defaults to enabled. The authenticated network page and API can
 change the validated settings, which are written atomically to configuration.
 Changing the enabled state restarts the I2P provider. See

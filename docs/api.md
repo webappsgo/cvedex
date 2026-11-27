@@ -36,12 +36,34 @@ Updating either trusted-proxy setting requires a server restart.
 | POST | `/api/v1/server/{admin_path}/security/allowlist` | Validate and add a trusted IP or CIDR entry |
 | DELETE | `/api/v1/server/{admin_path}/security/allowlist/{id}` | Remove one trusted entry |
 | GET | `/api/v1/server/{admin_path}/security/allowlist/check/{ip}` | Check whether an IP address is allowlisted |
+| GET | `/api/v1/server/{admin_path}` | Read the current server settings |
+| GET, PATCH | `/api/v1/server/{admin_path}/settings` | Read or update validated server settings |
+| GET | `/api/v1/server/{admin_path}/status` | Read server status and restart information |
+| GET, PATCH | `/api/v1/server/{admin_path}/network/geoip` | Read or update GeoIP policy |
+| GET | `/api/v1/server/{admin_path}/updates` | Read release update availability |
+| GET | `/api/v1/server/{admin_path}/notifications` | List administrator notifications |
+| POST | `/api/v1/server/{admin_path}/notifications/read-all` | Mark all notifications as read |
+| POST | `/api/v1/server/{admin_path}/notifications/{id}/read` | Mark one notification as read |
+| POST | `/api/v1/server/{admin_path}/security/dnssec/rotate` | Rotate DNSSEC signing keys |
+| GET | `/api/v1/server/{admin_path}/logs/audit` | Search and page through audit entries or export filtered results |
+| GET, PATCH, POST | `/api/v1/server/{admin_path}/backup` | Read settings/history, update settings, or create a backup |
+| POST | `/api/v1/server/{admin_path}/backup/restore` | Verify and restore a named backup |
+| GET | `/api/v1/server/{admin_path}/scheduler` | List registered tasks and persisted state |
+| GET, PATCH | `/api/v1/server/{admin_path}/scheduler/{id}` | Read a task or update its enabled state and schedule |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/run` | Run an enabled task immediately |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/enable` | Enable a task when its configuration allows it |
+| POST | `/api/v1/server/{admin_path}/scheduler/{id}/disable` | Disable a task when its configuration allows it |
+| GET | `/api/v1/server/{admin_path}/scheduler/{id}/history` | Read recent task executions |
 
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/v1` | API identity and health link |
 | GET | `/api/autodiscover` | Public instance metadata and checksummed CLI release inventory |
 | GET | `/api/v1/server/healthz` | Public service status |
+| GET | `/api/v1/server/preferences` | Read guest theme and consent preferences |
+| POST | `/api/v1/server/preferences` | Update guest preferences after consent |
+| GET | `/api/v1/server/preferences/sync` | Read the current preference synchronization payload |
+| GET | `/api/v1/server/preferences/sync/import` | Import preferences from a synchronization token |
 | GET | `/api/v1/cves` | Dataset record count and build metadata |
 | GET | `/api/v1/cves/{cve_id}` | One CVE record, including CVSS, affected products, references, KEV, and EPSS when present |
 | GET | `/api/v1/search?q={text}` | Description, identifier, vendor, and product search; supports `year`, `severity`, `kev`, `limit` (1–100), and numeric offset `cursor` |
@@ -55,6 +77,7 @@ Updating either trusted-proxy setting requires a server restart.
 | GET | `/api/v1/kev` | KEV catalog entries in the dataset |
 | GET | `/api/v1/zone` | BIND-format zone snapshot download |
 | GET | `/api/v1/ds` | Current DNSSEC DS records; returns 503 until a signed zone is available |
+| GET | `/cli/binaries/{binary}` | Download a published CLI binary; authentication is optional unless configured |
 | GET | `/api/swagger` | Direct alias for the current version's OpenAPI document |
 | GET, POST | `/api/graphql` | Direct aliases for the current version's read-only GraphQL endpoint |
 | GET | `/api/v1/server/graphql` | Execute a read-only GraphQL query supplied in the `query` URL parameter |
@@ -94,6 +117,10 @@ available as JSON at `/api/v1/server/preferences` (GET and POST). API writes
 accept partial JSON or form updates and do not grant cookie consent; writes are
 ignored until the visitor accepts the Preferences category on the preferences
 page. Web form posts use CSRF protection.
+The browser synchronization page accepts GET and POST at
+`/server/preferences/sync`; its API exposes read-only GET routes for sync and
+import at `/api/v1/server/preferences/sync` and
+`/api/v1/server/preferences/sync/import`.
 
 The OpenAPI document is served at `/api/v1/server/swagger` and its direct alias `/api/swagger`; its browser page is `/server/docs/swagger`.
 The GraphQL query endpoint is `/api/v1/server/graphql`, with `/api/graphql` as
