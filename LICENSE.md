@@ -199,3 +199,113 @@ without specific prior written permission.
 Full license: https://spdx.org/licenses/BSD-3-Clause.html
 
 ---
+
+## Bundled GraphiQL Browser Libraries
+
+The GraphiQL browser assets include the pinned runtime packages below. Full license texts are available at [SPDX](https://spdx.org/licenses/).
+
+| Package | Version | License |
+|---------|---------|---------|
+| @floating-ui/core | 1.8.0 | MIT |
+| @floating-ui/dom | 1.8.0 | MIT |
+| @floating-ui/react-dom | 2.1.9 | MIT |
+| @floating-ui/react | 0.26.28 | MIT |
+| @floating-ui/utils | 0.2.12 | MIT |
+| @graphiql/plugin-collections | 1.0.1 | MIT |
+| @graphiql/plugin-doc-explorer | 1.0.0 | MIT |
+| @graphiql/plugin-history | 1.0.1 | MIT |
+| @graphiql/plugin-query-builder | 1.0.1 | MIT |
+| @graphiql/react | 1.0.2 | MIT |
+| @graphiql/toolkit | 1.0.1 | MIT |
+| @headlessui/react | 2.2.10 | MIT |
+| @internationalized/date | 3.12.4 | Apache-2.0 |
+| @internationalized/number | 3.6.9 | Apache-2.0 |
+| @internationalized/string | 3.2.10 | Apache-2.0 |
+| @isaacs/nonrecursive-glob-match | 1.1.0 | BlueOak-1.0.0 |
+| @n1ru4l/push-pull-async-iterable-iterator | 3.2.0 | MIT |
+| @radix-ui/primitive | 1.2.0 | MIT |
+| @radix-ui/react-arrow | 1.1.17 | MIT |
+| @radix-ui/react-collection | 1.2.0 | MIT |
+| @radix-ui/react-compose-refs | 1.1.5 | MIT |
+| @radix-ui/react-context | 1.3.0 | MIT |
+| @radix-ui/react-dialog | 1.3.1 | MIT |
+| @radix-ui/react-direction | 1.2.0 | MIT |
+| @radix-ui/react-dismissable-layer | 1.2.1 | MIT |
+| @radix-ui/react-dropdown-menu | 2.2.1 | MIT |
+| @radix-ui/react-focus-guards | 1.2.0 | MIT |
+| @radix-ui/react-focus-scope | 1.3.1 | MIT |
+| @radix-ui/react-id | 1.1.4 | MIT |
+| @radix-ui/react-menu | 2.2.1 | MIT |
+| @radix-ui/react-popper | 1.4.0 | MIT |
+| @radix-ui/react-portal | 1.2.0 | MIT |
+| @radix-ui/react-presence | 1.1.11 | MIT |
+| @radix-ui/react-primitive | 2.2.0 | MIT |
+| @radix-ui/react-roving-focus | 1.2.1 | MIT |
+| @radix-ui/react-slot | 1.5.0 | MIT |
+| @radix-ui/react-tooltip | 1.4.1 | MIT |
+| @radix-ui/react-use-callback-ref | 1.1.5 | MIT |
+| @radix-ui/react-use-controllable-state | 1.3.0 | MIT |
+| @radix-ui/react-use-effect-event | 0.0.5 | MIT |
+| @radix-ui/react-use-is-hydrated | 0.1.3 | MIT |
+| @radix-ui/react-use-layout-effect | 1.1.4 | MIT |
+| @radix-ui/react-use-rect | 1.1.4 | MIT |
+| @radix-ui/react-use-size | 1.1.5 | MIT |
+| @radix-ui/react-visually-hidden | 1.2.13 | MIT |
+| @radix-ui/rect | 1.1.3 | MIT |
+| @react-aria/focus | 3.22.1 | Apache-2.0 |
+| @react-aria/interactions | 3.28.1 | Apache-2.0 |
+| @react-types/shared | 3.37.0 | Apache-2.0 |
+| @swc/helpers | 0.5.24 | Apache-2.0 |
+| @tanstack/react-virtual | 3.14.28 | MIT |
+| @tanstack/virtual-core | 3.19.13 | MIT |
+| @types/trusted-types | 2.0.7 | MIT |
+| argparse | 3.0.4 | PSF-2.0 |
+| aria-hidden | 1.2.6 | MIT |
+| balanced-match | 4.0.4 | MIT |
+| brace-expansion | 5.1.0 | MIT |
+| clsx | 2.1.1 | MIT |
+| debounce-promise | 3.1.2 | MIT |
+| detect-node-es | 1.1.0 | MIT |
+| dompurify | 3.4.15 | (MPL-2.0 OR Apache-2.0) |
+| entities | 8.1.0 | BSD-2-Clause |
+| framer-motion | 14.14.0 | MIT |
+| get-nonce | 1.0.1 | MIT |
+| get-value | 4.1.0 | MIT |
+| graphiql | 6.0.1 | MIT |
+| graphql-language-service | 6.0.1 | MIT |
+| graphql | 17.0.2 | MIT |
+| is-plain-object | 2.0.4 | MIT |
+| is-primitive | 3.0.1 | MIT |
+| isobject | 3.0.1 | MIT |
+| jsonc-parser | 3.3.1 | MIT |
+| linkify-it | 6.1.0 | MIT |
+| markdown-it | 15.0.3 | MIT |
+| marked | 14.0.0 | MIT |
+| mdurl | 2.1.0 | MIT |
+| meros | 1.3.2 | MIT |
+| minimatch | 11.0.9 | BlueOak-1.0.0 |
+| monaco-editor | 0.57.0 | MIT |
+| monaco-graphql | 2.0.1 | MIT |
+| motion-dom | 14.14.0 | MIT |
+| motion-utils | 14.7.0 | MIT |
+| prettier | 3.10.1 | MIT |
+| punycode.js | 2.3.1 | MIT |
+| react-aria | 3.53.1 | Apache-2.0 |
+| react-compiler-runtime | 1.0.0 | MIT |
+| react-dom | 19.3.1 | MIT |
+| react-remove-scroll-bar | 2.3.8 | MIT |
+| react-remove-scroll | 2.7.2 | MIT |
+| react-stately | 3.51.0 | Apache-2.0 |
+| react-style-singleton | 2.2.3 | MIT |
+| react | 19.3.1 | MIT |
+| scheduler | 0.28.0 | MIT |
+| set-value | 4.1.0 | MIT |
+| tabbable | 6.5.2 | MIT |
+| tslib | 2.9.1 | 0BSD |
+| uc.micro | 3.0.0 | MIT |
+| use-callback-ref | 1.3.3 | MIT |
+| use-sidecar | 1.1.3 | MIT |
+| use-sync-external-store | 1.7.0 | MIT |
+| vscode-languageserver-types | 3.18.6 | MIT |
+| zod | 4.6.7 | MIT |
+| zustand | 5.1.0 | MIT |
