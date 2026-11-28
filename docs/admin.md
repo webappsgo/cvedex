@@ -139,19 +139,19 @@ are listed above and use the operator Bearer token; browser controls use the
 authenticated session and CSRF tokens.
 
 The scheduler registers `cve_update`, `geoip_update`, `blocklist_update`, `session_cleanup`,
-`token_cleanup`, `log_rotation`, `security_cleanup`, `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
+`token_cleanup`, `log_rotation`, `security_cleanup`, `keyserver_retry`, `healthcheck_self`, and `update_check`. It also registers daily/hourly backups
 when the backup runner is available, Tor health when Tor is installed, and I2P
 health when I2P is enabled. `token_cleanup` removes revoked or expired
 administrator tokens and used or expired password-reset and email-verification
 tokens. GeoIP downloads run at startup when the local database is stale, then
 weekly; the admin page is `/server/{admin_path}/network/geoip`.
-`security_cleanup` currently prunes administrator notifications only. `log_rotation`
-applies the configured audit-log rotation and retention policy even when no new
-audit event arrives. TLS renewal, security-report/key retirement cleanup,
-keyserver retries, and cluster heartbeats are not implemented yet; their
-configuration entries do not imply that work runs. Blocklist behavior is
-configured in `server.yml`; see [Configuration](configuration.md#configuration).
-These remaining limitations are tracked in the project implementation backlog.
+`security_cleanup` prunes administrator notifications, expired security reports,
+and retired PGP private keys after their 30-day grace period. `keyserver_retry`
+retries due OpenPGP key publications using the persistent state in
+`{config_dir}/security/keyservers.state`; final 4xx responses are not retried.
+`log_rotation` applies the configured audit-log rotation and retention policy
+even when no new audit event arrives. Blocklist behavior is configured in
+`server.yml`; see [Configuration](configuration.md#configuration).
 Tor and I2P processes are managed separately from these scheduler callbacks;
 see [Integrations](integrations.md#tor-and-i2p-overlays).
 
@@ -205,6 +205,26 @@ cvedex --maintenance restore --password 'backup-password' /path/to/cvedex_backup
 Encrypted restore prompts for the password when it is not supplied through the
 supported command option. Keep the backup password separately: it is required
 to verify or restore encrypted archives.
+
+Backups include the OpenPGP public key, encrypted private key, and
+`security/keyservers.state` when present, along with the database security
+reports and their `app_secrets` key rows. Restore reinstalls these files and
+publication state so already-published keys are not submitted again.
+
+## Security keypair
+
+The authenticated page is `/server/{admin_path}/security/keypair`. It can
+generate, rotate, republish, export, import, or delete the project OpenPGP key.
+Private-key export, import, and deletion require the current admin password;
+export is limited to once per hour per administrator and records the supplied
+reason in the audit log. Deletion requires typing `DELETE PGP KEY` and makes
+existing PGP-encrypted reports unreadable. Rotations re-encrypt retained report
+bodies before switching the active key and retain the prior private key for
+30 days. Configure `web.security.keyservers` to publish keys; failed transient
+submissions are retried by the scheduler.
+The Server Settings page controls `server.security.reports.retention_days`
+(default `365`); only closed reports are deleted after that many days, while
+open reports are retained.
 
 ## Updates
 

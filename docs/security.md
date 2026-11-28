@@ -20,11 +20,11 @@ burst ceiling is shared across endpoint classes per client identity. Anonymous
 traffic is keyed by the normalized client IP; valid operator-token requests
 use a token digest. Forwarded client IPs are accepted only from configured
 trusted proxies. Limits return JSON with
-`429` and `Retry-After`. The current implementation keeps counters in memory,
-so they reset on restart; persistent counters and cache-backed coordination are
-not implemented yet. `HTTP_RATE_LIMIT_REQUESTS` and `HTTP_RATE_LIMIT_WINDOW`
-control the general client read limit and window; other class defaults are
-currently fixed.
+`429` and `Retry-After`. In-memory counters are flushed to `server.db` every 30
+seconds and on shutdown, then restored at startup. Redis or Valkey provides the
+shared counter backend when configured; an unavailable backend falls back to
+the persisted local counters. `HTTP_RATE_LIMIT_REQUESTS` and
+`HTTP_RATE_LIMIT_WINDOW` control the general client read limit and window.
 
 Entries under `server.security.allowlist` bypass IP blocklists, HTTP rate
 limits, and GeoIP country rules. They do not bypass administrator sessions,
@@ -53,8 +53,9 @@ normalized client address resolved through explicitly trusted proxies. See
 First-run administrator pages use session and CSRF protections. Admin API
 routes require the operator token in an `Authorization: Bearer` header and do
 not accept session cookies. The settings panel controls refresh, redirect,
-transfer ACL, NOTIFY, DNSSEC, and DNS response limiting. HTTP limit settings are
-not yet editable there. DNSSEC signs the published zone when a verified dataset
+transfer ACL, NOTIFY, DNSSEC, DNS response limiting, and cache configuration.
+HTTP request limits are enforced by endpoint class and configured through the
+server configuration. DNSSEC signs the published zone when a verified dataset
 is available. Protect the private configuration directory, which contains the
 operator token, and the persistent data directory, which contains private
 DNSSEC keys.
@@ -66,5 +67,11 @@ For a vulnerability in the cvedex source or release, use [GitHub private vulnera
 The generated `/.well-known/security.txt` lists the private reporting channel, the instance form when enabled, the configured security contact email, and the request host's policy URL. Set `web.security.report_url` or `SECURITY_REPORT_URL` to an HTTPS reporting URL for a self-hosted distribution. The operator may replace the generated text by placing a regular file at `{DATA_DIR}/web/.well-known/security.txt`; symlinked, oversized, or unreadable overrides are ignored.
 
 `/server/security` provides the instance reporting overview. Its rotating `security_id` link opens the security-report form at `/server/contact`; without a valid id, that form offers abuse, DMCA, and privacy reports only. It is not a support or general-contact form. No user-submitted report content is placed in `llms.txt`.
+
+The authenticated `/server/{admin_path}/security/keypair` page manages the
+project OpenPGP key used for encrypted security reports. Key rotations
+re-encrypt retained report bodies before committing the new fingerprint;
+private-key export, import, and deletion require password reauthentication
+and are audited. Configure `web.security.keyservers` to publish the public key.
 
 `llms.txt` is generated from the public API route metadata and request-specific base URL. It describes anonymous read-only data access and identifies operator-only MCP/admin authentication without listing protected administrator routes. An operator can replace its body at `{DATA_DIR}/web/.well-known/llms.txt`.

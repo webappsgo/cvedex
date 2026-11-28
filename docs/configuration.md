@@ -59,6 +59,26 @@ Configuration is loaded from an optional YAML file, then environment variables o
 | `CHECKSUM_URL` | Dataset URL plus `.sha256` | HTTPS URL for the dataset SHA-256 file |
 | `TZ` | `America/New_York` | IANA timezone for scheduled tasks; overrides `server.scheduler.timezone` |
 
+The shared cache defaults to process memory. Set `server.cache.type` to
+`none`, `memory`, `valkey`, or `redis`; Valkey and Redis accept either a
+connection URL (`redis://`, `rediss://`, `valkey://`, or `valkeys://`) or
+individual host, port, username, password, and database fields. A URL takes
+precedence over individual connection values. Credentialed URLs and passwords
+are stored in the owner-only `{CONFIG_DIR}/secrets.yml`; TLS CA and client
+certificate filenames resolve under `{CONFIG_DIR}/ssl/`. Cluster mode uses
+`cluster: true` and `cluster_nodes`. The cache backend also supports connection
+pool size, minimum idle connections, operation timeout, key prefix, and default
+TTL. Cache settings are available to administrators in the server settings
+page.
+
+The corresponding environment variables are `CACHE_TYPE`, `CACHE_URL`,
+`CACHE_HOST`, `CACHE_PORT`, `CACHE_USERNAME`, `CACHE_PASSWORD`, `CACHE_DB`,
+`CACHE_TLS`, `CACHE_TLS_SKIP_VERIFY`, `CACHE_TLS_CA`, `CACHE_TLS_CERT`,
+`CACHE_TLS_KEY`, `CACHE_POOL_SIZE`, `CACHE_MIN_IDLE`, `CACHE_TIMEOUT`,
+`CACHE_PREFIX`, `CACHE_TTL`, `CACHE_CLUSTER`, and `CACHE_CLUSTER_NODES`.
+When an external cache is unreachable, HTTP rate limiting uses its persisted
+local counters and reports fallback state in the health response.
+
 Branding is read from `{CONFIG_DIR}/yaml.d/branding.yml`; its `server.branding.title`,
 `server.branding.tagline`, and `server.branding.description` values feed the
 health response and generated `llms.txt`. The file and its directory are
@@ -153,6 +173,8 @@ normalized client IP, including trusted-proxy resolution.
 ```yaml
 server:
   security:
+    reports:
+      retention_days: 365
     allowlist:
       - cidr: 192.0.2.10
         description: "Monitoring address"
@@ -190,6 +212,9 @@ server:
   pidfile: /run/casapps/cvedex/cvedex.pid
   data_dir: /var/lib/casapps/cvedex
   backup_dir: /mnt/Backups/casapps/cvedex
+  security:
+    reports:
+      retention_days: 365
   backup:
     enabled: true
     hourly_enabled: false
@@ -265,6 +290,9 @@ server:
 web:
   security:
     report_url: https://github.com/webappsgo/cvedex/security/advisories/new
+    keyservers:
+      - keys.openpgp.org
+      - keyserver.ubuntu.com
   robots:
     allow: ["/", "/api"]
     deny: ["/server/administration"]
@@ -286,6 +314,12 @@ server:
 are limited to 80 Unicode characters and Markdown content to 4096. Invalid
 entries are skipped with a warning. Generated links permit HTTPS and relative
 targets; HTML tags are escaped. These settings apply on restart.
+
+`web.security.keyservers` is an optional list of keyserver hostnames used when
+the project OpenPGP key is generated, rotated, or manually republished. The
+server persists each host's publication status and retry schedule in
+`{CONFIG_DIR}/security/keyservers.state`; transient network errors, HTTP 5xx,
+and HTTP 429 responses are retried with bounded exponential backoff.
 
 The report form is controlled by `server.pages.contact.enabled` (enabled by
 default) and currently uses the built-in arithmetic CAPTCHA. Contact role

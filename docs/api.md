@@ -108,13 +108,15 @@ CVE records. Feed responses support `GET` and `HEAD`, use a five-minute public
 cache, and provide `ETag` and `Last-Modified` validators.
 
 The frontend health page at `/server/healthz` supports HTML, JSON, and plain
-text; `/api/v1/server/healthz` returns JSON by default and
-`/api/v1/server/healthz.txt` returns plain text. `/api/v1.txt` returns the API
-identity in plain text. The `checks` object keeps `database`, `cache`, `disk`,
+text; `/api/v1/server/healthz` and its direct alias `/api/healthz` return JSON
+by default, while `/api/v1/server/healthz.txt` returns plain text. `/api/v1.txt`
+returns the API identity in plain text. The `checks` object keeps `database`, `cache`, `disk`,
 and `scheduler` first; enabled overlays follow, then dynamically keyed dataset
 checks such as `geoip_country`, `blocklist_<id>`, and `data_cve_nvd`. Each value
 is only `ok`, `degraded`, or `error`; health responses do not expose local paths
-or dependency diagnostics.
+or dependency diagnostics. `features.cache.fallback` reports when the external
+Valkey/Redis rate-limit counters are unavailable and the server is using its
+persisted local sliding-window counters.
 
 Guest theme and consent settings are editable at `/server/preferences` and
 available as JSON at `/api/v1/server/preferences` (GET and POST). API writes
@@ -136,7 +138,10 @@ The browser query form is at `/server/docs/graphql`. GraphQL supports the
 read operations `cve`, `search`, `vendors`, `vendor`, `vendor_products`,
 `products`, `product`, `latest_cves`, `kev`, `dataset`, `ds`, and `zone`. Search,
 catalog, and reverse lookup queries accept bounded `limit` and `cursor`
-arguments.
+arguments. GraphQL introspection includes localized descriptions for the query,
+custom types, fields, and arguments. Language selection follows the standard
+request order: `?lang=`, the `lang` cookie, `Accept-Language`, then English;
+missing translations fall back to English.
 
 ## Model Context Protocol
 
